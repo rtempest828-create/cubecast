@@ -22,6 +22,7 @@ import { NO_COSMETICS, type CosmeticSettings } from '../model/cosmetics'
 import { parentTypeOf } from '../figura/parent-types'
 import { suggestExpression } from './expressions'
 import { ALL_VANILLA, type VanillaId } from '../figura/vanilla-scan'
+import { parseAnimationSettings, type AnimationSettings } from '../animation/player'
 
 /** Feste IDs der (virtuellen) Teile des Gesichts-Overlays. */
 export const FACE_PART_IDS = {
@@ -65,6 +66,8 @@ export interface AvatarRig {
   readonly cosmetics: CosmeticSettings
   /** Ausgeblendete Teile des Minecraft-Körpers; null/fehlend = wie im Figura-Skript. */
   readonly vanillaHidden?: readonly VanillaId[] | null
+  /** Einstellungen pro Blockbench-Animation (Autostart, Tempo, Auslöser …). */
+  readonly animations?: Readonly<Record<string, AnimationSettings>>
 }
 
 /** Zuordnungen von Zubehör-Teilen bleiben erhalten, auch wenn das Zubehör gerade aus ist. */
@@ -284,7 +287,8 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
         autoEmotion: face['autoEmotion'] !== false
       },
       cosmetics: parseCosmetics(value['cosmetics']),
-      ...(Array.isArray(value['vanillaHidden']) ? { vanillaHidden: parseVanillaHidden(value['vanillaHidden']) } : {})
+      ...(Array.isArray(value['vanillaHidden']) ? { vanillaHidden: parseVanillaHidden(value['vanillaHidden']) } : {}),
+      ...(isRecord(value['animations']) ? { animations: parseAnimationSettings(value['animations']) } : {})
     },
     warnings
   }

@@ -991,3 +991,85 @@ input[type='number'] {
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* ---------- Animationen ---------- */
+.anim-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.anim-clip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.anim-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.anim-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.anim-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anim-buttons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.anim-buttons .button {
+  min-width: 34px;
+  padding: 5px 8px;
+}
+
+.anim-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+
+.anim-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.anim-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anim-details summary {
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.anim-details[open] {
+  padding-bottom: 4px;
+}
+
+.anim-details[open] > *:not(summary) {
+  margin-top: 8px;
+}

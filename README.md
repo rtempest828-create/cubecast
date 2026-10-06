@@ -4,10 +4,10 @@ Windows-Desktop-App, die einen Minecraft-Skin oder Figura-Avatar als blockiges 3
 darstellt und per Webcam-Face-Tracking steuert – zum Streamen mit OBS oder für Discord.
 Alles läuft lokal, ohne Konto und ohne Cloud.
 
-> **Stand: Meilenstein M5a** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
+> **Stand: Meilenstein M5b** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
 > Körper-Mitbewegung und Leerlauf, Physik (mit Test-Zubehör), Arm-Tracking, Mikrofon-Lip-Sync,
-> Figura-Avatare (`.bbmodel`) importieren. Blockbench-Animationen (M5b), Lua-Skripte (M5c) und
-> Streaming-Ausgabe (M6) folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
+> Figura-Avatare (`.bbmodel`) importieren, Blockbench-Animationen abspielen. Lua-Skripte (M5c),
+> Streaming-Ausgabe (M6) und der Chibi-Modus (M3b) folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
 
 ## Installation
 
@@ -75,8 +75,24 @@ und HD-Skins (128×128, 256×256 …).
   Einzelne Vorschläge lassen sich im Debug-Modus (F12) ändern.
 - **Minecraft-Körper:** Welche Vanilla-Teile sichtbar sind, liest die App vorerst aus Aufrufen wie
   `vanilla_model.PLAYER:setVisible(false)` im Skript. Mit „Eigene Auswahl“ lässt sich das überschreiben.
-- Lua-Skripte werden erst ab M5c ausgeführt, Blockbench-Animationen ab M5b. Hinweise dazu stehen
-  aufklappbar unter dem geladenen Avatar.
+- Lua-Skripte werden erst ab M5c ausgeführt. Hinweise dazu stehen aufklappbar unter dem geladenen Avatar.
+- Zum Ausprobieren liegt ein Beispiel-Avatar mit Animationen bei (`examples/figura/Beispiel-Fuchs`,
+  in der Liste als „Beispiel“).
+
+### Animationen (Bereich „Animationen“)
+
+- Zeigt alle Blockbench-Animationen des geladenen Figura-Avatars: abspielen, pausieren, von vorn, stoppen,
+  Fortschrittsbalken; „Alle stoppen“.
+- Unterstützt: Drehung, Verschiebung, Skalierung; Interpolation linear, Catmull-Rom, Bézier (mit Griffen)
+  und Stufe; Sprünge (Vor-/Nachwert); Wiederholung Endlos / Einmal / Ende halten; Start- und
+  Loop-Verzögerung; Stärke („Blend Weight“); „Override“ (ersetzt Tracking und Leerlauf der animierten Teile).
+- Keyframe-Werte dürfen Ausdrücke sein (`math.sin(time * 4) * 10`). Wie in Figura gelten Lua-Regeln
+  (Winkel im Bogenmaß); Molang-Schreibweisen wie `q.anim_time` werden ebenfalls verstanden.
+- Pro Animation unter „Einstellungen“: **Autostart** beim Laden, eigener Wiederholungsmodus, **Tempo**,
+  **Stärke** und ein **Auslöser**: Die Animation läuft, solange ein Tracking-Signal über einer Schwelle
+  liegt (z. B. Schweif wedelt beim Lächeln), oder startet bei jedem Überschreiten neu (z. B. Hüpfer beim
+  Mund-Öffnen). Wird pro Avatar gespeichert.
+- Mehrere Animationen laufen gleichzeitig und addieren sich; Ohren und Schweif reagieren mit der Physik darauf.
 
 ### Modelltyp
 
@@ -175,6 +191,9 @@ Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
   dafür gibt es „Links/Rechts der Mimik vertauschen“.
 - Arm-Tracking zeigt nur die Richtung Schulter → Handgelenk; Minecraft-Arme können nicht abknicken.
 - Lip-Sync schätzt nur Lautstärke und „rund/offen“, keine einzelnen Laute.
+- Animationen: Timeline-Skripte, Sounds und Partikel-Keyframes werden (noch) nicht ausgeführt;
+  Keyframe-Ausdrücke mit Lua-Methoden (`player:getPos()`) erst ab M5c. Start-/Loop-Verzögerung als
+  Ausdruck wird als 0 gerechnet.
 - Figura (bis M5c): Lua-Skripte laufen noch nicht. Was ein Skript selbst macht (Schweif wedeln,
   Emotes per Aktionsrad, Augen per Skript umschalten), übernehmen bis dahin Rollen, Physik und Tracking.
 - Figura: Teile mit der Skin-Textur des Spielers (`primary texture = SKIN`), Kamera-/HUD-Ansichten,

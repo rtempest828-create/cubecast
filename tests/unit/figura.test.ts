@@ -138,3 +138,14 @@ describe.skipIf(avatars.length === 0)('echte Figura-Avatare', () => {
     expect(roles.has('leftEar') || roles.has('rightEar')).toBe(true)
   })
 })
+
+describe('Beispiel-Avatar (examples/figura/Beispiel-Fuchs)', () => {
+  it('lädt mit allen Animationen und ohne Warnungen außer zum Lua-Skript', async () => {
+    const dir = join(__dirname, '..', '..', 'examples', 'figura', 'Beispiel-Fuchs')
+    const avatar = await loadFiguraAvatar('Beispiel-Fuchs', readFolder(dir))
+    expect(avatar.animations.map((a) => a.name).sort()).toEqual(['huepfen', 'nicken', 'ohren_zucken', 'wedeln', 'winken'])
+    expect(avatar.warnings.filter((w) => !w.includes('Lua-Skript'))).toEqual([])
+    expect(avatar.animations.every((a) => a.tracks.length > 0)).toBe(true)
+    expect(avatar.hiddenVanilla.size).toBe(12)
+  })
+})

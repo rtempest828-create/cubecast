@@ -1,6 +1,7 @@
 import type { JSX } from 'preact'
 import { t } from '@shared/i18n'
 import { armTrackingActive, physicsPartCount } from '../runtime/runtime'
+import { animationClips, animationStatus } from '../state/animation-state'
 import { logEntries, signalMode } from '../state/debug-state'
 import { currentEmotion } from '../state/rig-state'
 import { trackingClient, trackingDebug } from '../state/tracking-state'
@@ -19,7 +20,12 @@ export function DebugHud(): JSX.Element {
     [t('hud.emotion'), t(`emotion.${currentEmotion.value}`)],
     [t('hud.physics'), t('hud.physics.parts', { count: physicsPartCount.value })],
     [t('hud.arms'), armTrackingActive.value ? t('hud.arms.tracked') : t('hud.arms.idle')],
-    [t('hud.animations'), t('hud.animations.none')],
+    [
+      t('hud.animations'),
+      animationClips.value.length === 0
+        ? t('hud.animations.none')
+        : t('hud.animations.active', { active: [...animationStatus.value.values()].filter((s) => s.state === 'playing').length, total: animationClips.value.length })
+    ],
     [t('hud.lua'), t('hud.lua.none')],
     [t('hud.warnings'), String(warnings)]
   ]

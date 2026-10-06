@@ -2,6 +2,7 @@ import { effect, signal } from '@preact/signals'
 import { applyEmotion, detectEmotion, type Emotion } from '@core/face/emotions'
 import { composeFace, faceStateFromPose, faceStateKey, roundFaceState } from '@core/face/face-compose'
 import { FACE_TEXTURE_ID, SKIN_TEXTURE_ID } from '@core/model/vanilla-avatar'
+import { evaluateTriggers, type TriggerMemory } from '@core/animation/player'
 import { PhysicsSystem } from '@core/physics/physics'
 import { applyBody } from '@core/pipeline/body'
 import { PoseBuilder, type PartPose } from '@core/pipeline/pose'
@@ -17,6 +18,7 @@ import { bodyState, lipSyncClient, micLevel } from '../state/body-state'
 import { debugMode, driverValues, liveSignals, manualSignals, overriddenSignals, signalMode } from '../state/debug-state'
 import { currentEmotion, currentFaceState, faceLayout, faceSource, faceVariants, manualEmotion, rig } from '../state/rig-state'
 import { trackingClient, trackingDebug, trackingSettings } from '../state/tracking-state'
+import { animationClips, animationPlayer, publishAnimationStatus, settingsOf } from '../state/animation-state'
 
 /**
  * Laufzeit pro Frame:
@@ -24,13 +26,14 @@ import { trackingClient, trackingDebug, trackingSettings } from '../state/tracki
  *   → Simulator (Webcam/Manuell/Gemischt) → Rollen-Treiber → Pose
  *   → Körper (Leerlauf, Mitbewegung, Arm-Tracking) → Physik
  *   → Gesichtszustand + Emotion → Gesichts-Textur → 3D-Ansicht
- * Ab M5b/M5c kommen Animationen und Lua dazu (vor Körper/Physik).
+ * Ab M5c kommt Lua dazu (vor den Animationen).
  */
 export const headTracker = new HeadTracker(trackingSettings.peek())
 effect(() => headTracker.setSettings(trackingSettings.value))
 
 const smoother = new DriverSmoother()
 const physics = new PhysicsSystem()
+const triggerMemory: TriggerMemory = new Map()
 const armTracker = new ArmTracker()
 let lastPoseFrame = -1
 let lastPoseTime = -Infinity
@@ -101,6 +104,13 @@ export function attachRuntime(viewport: Viewport): () => void {
     }
     const arms = armTracker.update(armTargets, nowMs / 1000, dt)
     applyBody(builder, model, currentRig, body, { timeSec: nowMs / 1000, signals, arms })
+    // Blockbench-Animationen (nach dem Körper, vor der Physik – Ohren und Schweif reagieren darauf)
+    const clips = animationClips.peek()
+    if (clips.length > 0) {
+      evaluateTriggers(animationPlayer, clips, settingsOf, signals, triggerMemory)
+      animationPlayer.update(dt, clips, settingsOf)
+      animationPlayer.apply(builder, clips, settingsOf, nowMs / 1000)
+    }
     physics.step(model, currentRig, builder, dt, nowMs / 1000, { enabled: body.physicsEnabled, strength: body.physicsStrength })
     const pose = new Map(builder.build())
 
@@ -162,6 +172,7 @@ export function attachRuntime(viewport: Viewport): () => void {
       micLevel.value = audio?.level ?? 0
       physicsPartCount.value = currentRig.assignments.filter((a) => a.confirmed && a.drivers.some((d) => d.mode === 'physics')).length
       armTrackingActive.value = arms.left.weight > 0.5 || arms.right.weight > 0.5
+      publishAnimationStatus()
       if (currentEmotion.peek() !== emotion) currentEmotion.value = emotion
       if (faceStateKey(currentFaceState.peek()) !== faceStateKey(faceState)) currentFaceState.value = faceState
       if (debugMode.peek()) {

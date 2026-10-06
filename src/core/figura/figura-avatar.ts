@@ -1,4 +1,6 @@
+import { parseAnimations, type AnimationClip } from '../animation/clip'
 import { parseBbmodel, type ParsedBbmodel } from '../bbmodel/parse-bbmodel'
+import { walkParts } from '../model/avatar-model'
 import { scanHiddenVanilla, type VanillaId } from './vanilla-scan'
 
 /** Eine Datei aus einem Figura-Avatar-Ordner (Pfad relativ zum Ordner, mit „/“). */
@@ -19,6 +21,8 @@ export interface FiguraAvatar {
   /** Akzentfarbe aus `avatar.json` (z. B. „#EEC652“) oder null. */
   readonly color: string | null
   readonly models: readonly ParsedBbmodel[]
+  /** Blockbench-Animationen aller Modelle (IDs wie Figuras `animations.<modell>.<name>`). */
+  readonly animations: readonly AnimationClip[]
   /** Lua-Skripte (werden ab M5c ausgeführt). */
   readonly scripts: readonly FiguraScript[]
   /** Vanilla-Teile, die die Skripte ausblenden (vorläufige Erkennung bis M5c). */
@@ -96,6 +100,7 @@ export async function loadFiguraAvatar(folderName: string, files: readonly Figur
   if (modelFiles.length > MAX_MODELS) warnings.push(`Nur die ersten ${MAX_MODELS} Modelle werden geladen.`)
 
   const models: ParsedBbmodel[] = []
+  const animations: AnimationClip[] = []
   for (const file of modelFiles.slice(0, MAX_MODELS)) {
     const modelPath = modelPathOf(file.path)
     const base = dirname(file.path)
@@ -108,6 +113,14 @@ export async function loadFiguraAvatar(folderName: string, files: readonly Figur
       })
       models.push(model)
       for (const warning of model.warnings) warnings.push(`${file.path}: ${warning}`)
+      const partIdByName = new Map<string, string>()
+      walkParts(model.root, (part) => {
+        if (!partIdByName.has(part.name)) partIdByName.set(part.name, part.id)
+      })
+      // Figura wertet Keyframe-Ausdrücke als Lua aus.
+      const parsed = parseAnimations(model.animations, { modelPath, partIdByUuid: model.partIdByUuid, partIdByName, dialect: 'lua' })
+      animations.push(...parsed.clips)
+      for (const warning of parsed.warnings) warnings.push(`${file.path}: ${warning}`)
     } catch (error) {
       warnings.push(`${file.path} konnte nicht gelesen werden: ${error instanceof Error ? error.message : String(error)}`)
     }
@@ -115,7 +128,8 @@ export async function loadFiguraAvatar(folderName: string, files: readonly Figur
 
   const scripts = files.filter((f) => /\.lua$/i.test(f.path)).map((f) => ({ path: f.path, source: text(f.data) }))
   if (scripts.length > 0) warnings.push(`${scripts.length} Lua-Skript(e) gefunden – sie werden ab Meilenstein M5c ausgeführt. Bis dahin steuern Rollen und Tracking den Avatar.`)
-  if (models.some((m) => m.animations.length > 0)) warnings.push('Blockbench-Animationen gefunden – sie werden ab Meilenstein M5b abgespielt.')
+  const effects = animations.reduce((sum, clip) => sum + clip.effectCount, 0)
+  if (effects > 0) warnings.push(`${effects} Timeline-/Sound-/Partikel-Keyframes in Animationen – Timeline-Skripte laufen ab Meilenstein M5c, Sounds und Partikel werden nicht abgespielt.`)
 
   const str = (key: string): string => (typeof meta[key] === 'string' ? (meta[key] as string) : '')
   return {
@@ -124,6 +138,7 @@ export async function loadFiguraAvatar(folderName: string, files: readonly Figur
     authors: Array.isArray(meta['authors']) ? meta['authors'].filter((a): a is string => typeof a === 'string') : str('author') ? [str('author')] : [],
     color: /^#[0-9a-f]{6}$/i.test(str('color')) ? str('color') : null,
     models,
+    animations,
     scripts,
     hiddenVanilla: scanHiddenVanilla(scripts.map((s) => s.source)),
     warnings

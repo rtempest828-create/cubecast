@@ -107,7 +107,7 @@ export function updateFaceSettings(patch: Partial<FaceRigSettings>): void {
 }
 
 export function resetRig(): void {
-  updateRig({ ...createDefaultRig(avatarModel.peek()), cosmetics: rig.peek().cosmetics, vanillaHidden: rig.peek().vanillaHidden ?? null })
+  updateRig({ ...createDefaultRig(avatarModel.peek()), cosmetics: rig.peek().cosmetics, vanillaHidden: rig.peek().vanillaHidden ?? null, animations: rig.peek().animations ?? {} })
 }
 
 /** Vanilla-Teile ein-/ausblenden (null = wie im Figura-Skript). */

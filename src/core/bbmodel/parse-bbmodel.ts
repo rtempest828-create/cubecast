@@ -18,8 +18,10 @@ import { parentTypeOf } from '../figura/parent-types'
 export interface ParsedBbmodel {
   readonly root: PartNode
   readonly textures: readonly TextureDef[]
-  /** Rohdaten der Animationen (werden ab M5b ausgewertet). */
+  /** Rohdaten der Animationen (Auswertung in `core/animation/clip.ts`). */
   readonly animations: readonly unknown[]
+  /** Gruppen-UUID → Teil-ID (Animationen sprechen Gruppen per UUID an). */
+  readonly partIdByUuid: ReadonlyMap<string, string>
   readonly warnings: readonly string[]
 }
 
@@ -259,6 +261,7 @@ export async function parseBbmodel(json: unknown, options: BbmodelOptions): Prom
   const groups = new Map<string, Json>()
   for (const group of Array.isArray(json['groups']) ? json['groups'] : []) if (isRecord(group) && typeof group['uuid'] === 'string') groups.set(group['uuid'], group)
 
+  const partIdByUuid = new Map<string, string>()
   const ignoredTypes = new Set<string>()
   const usedIds = new Set<string>()
   const uniqueId = (wanted: string): string => {
@@ -284,6 +287,7 @@ export async function parseBbmodel(json: unknown, options: BbmodelOptions): Prom
     if (!group || depth > 64) return null
     const name = String(group['name'])
     const id = uniqueId(`${parentPath}.${name}`)
+    if (typeof group['uuid'] === 'string') partIdByUuid.set(group['uuid'], id)
     const cubes: CubeDef[] = []
     const meshes: MeshDef[] = []
     const children: PartNode[] = []
@@ -337,6 +341,7 @@ export async function parseBbmodel(json: unknown, options: BbmodelOptions): Prom
     },
     textures,
     animations: Array.isArray(json['animations']) ? json['animations'] : [],
+    partIdByUuid,
     warnings
   }
 }

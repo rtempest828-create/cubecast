@@ -19,6 +19,12 @@ const ICONS: Readonly<Record<TabId, JSX.Element>> = {
     </>
   ),
   physics: <path d="M3 12c2-4.5 4-4.5 6 0s4 4.5 6 0 4-4.5 6 0" />,
+  animations: (
+    <>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M10 9.5v5l4.5-2.5z" />
+    </>
+  ),
   output: (
     <>
       <rect x="3" y="4.5" width="18" height="12" rx="2" />
@@ -40,6 +46,7 @@ const TABS: readonly { readonly id: TabId; readonly label: MessageKey }[] = [
   { id: 'tracking', label: 'tab.tracking' },
   { id: 'face', label: 'tab.face' },
   { id: 'physics', label: 'tab.physics' },
+  { id: 'animations', label: 'tab.animations' },
   { id: 'output', label: 'tab.output' },
   { id: 'settings', label: 'tab.settings' }
 ]

@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises'
-import { basename } from 'node:path'
+import { basename, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { t } from '../shared/i18n'
 import { IPC, MAX_SKIN_FILE_BYTES, type FiguraAvatarEntry, type FiguraFolderResult, type OpenFileResult, type SkinDownloadResult } from '../shared/ipc'
@@ -34,7 +34,8 @@ export function registerIpcHandlers(appUrl: string, avatarStore: AvatarStore): v
   ipcMain.handle(IPC.figuraList, async (event): Promise<readonly FiguraAvatarEntry[]> => {
     if (!isTrustedSender(event, appUrl)) return []
     try {
-      return await figura.scan(app.getPath('appData'))
+      const examples = join(app.getAppPath(), 'examples', 'figura')
+      return await figura.scan(app.getPath('appData'), [{ dir: examples, location: t('figura.location.examples') }])
     } catch (error) {
       console.warn('[Figura] Suche fehlgeschlagen:', error)
       return []

@@ -69,7 +69,7 @@ export async function readFiguraFolder(folder: string): Promise<{ path: string; 
   return files
 }
 
-interface AvatarRoot {
+export interface AvatarRoot {
   readonly dir: string
   readonly location: string
 }
@@ -145,9 +145,10 @@ export class FiguraRegistry {
     return key
   }
 
-  async scan(appData: string): Promise<FiguraAvatarEntry[]> {
+  /** `extraRoots`: weitere Ordner mit Avataren, z. B. die mitgelieferten Beispiele. */
+  async scan(appData: string, extraRoots: readonly AvatarRoot[] = []): Promise<FiguraAvatarEntry[]> {
     const found: { dir: string; location: string }[] = []
-    for (const root of await figuraRoots(appData)) await collectAvatars(root.dir, root.location, 0, found)
+    for (const root of [...(await figuraRoots(appData)), ...extraRoots]) await collectAvatars(root.dir, root.location, 0, found)
     const entries: FiguraAvatarEntry[] = []
     for (const avatar of found) {
       const key = this.register(avatar.dir, avatar.location)

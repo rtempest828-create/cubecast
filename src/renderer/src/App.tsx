@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar'
 import { Toasts } from './components/Toasts'
 import { ViewportView } from './components/ViewportView'
 import { DebugDrawer } from './debug/DebugDrawer'
+import { AnimationPanel } from './panels/AnimationPanel'
 import { FacePanel } from './panels/FacePanel'
 import { ModelPanel } from './panels/ModelPanel'
 import { PhysicsPanel } from './panels/PhysicsPanel'
@@ -18,6 +19,7 @@ const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
   tracking: TrackingPanel,
   face: FacePanel,
   physics: PhysicsPanel,
+  animations: AnimationPanel,
   output: () => <PlaceholderPanel title="tab.output" milestone="M6" />,
   settings: () => <PlaceholderPanel title="tab.settings" milestone="M6" />
 }

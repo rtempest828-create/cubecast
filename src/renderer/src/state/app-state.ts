@@ -8,7 +8,7 @@ import { normalizeSkin, type NormalizedSkin, type SkinModelType } from '@core/sk
 
 /** Zentraler UI-Zustand (Preact Signals). */
 
-export type TabId = 'model' | 'tracking' | 'face' | 'physics' | 'output' | 'settings'
+export type TabId = 'model' | 'tracking' | 'face' | 'physics' | 'animations' | 'output' | 'settings'
 
 export type SkinSource =
   | { readonly kind: 'placeholder' }
