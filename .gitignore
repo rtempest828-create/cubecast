@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+*.log
+Thumbs.db
+# Eigene Beispiel-Avatare des Nutzers (können fremde Inhalte enthalten)
+tests/fixtures/user-avatars/*
+!tests/fixtures/user-avatars/README.md
