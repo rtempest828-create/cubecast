@@ -1,6 +1,8 @@
 import { computed, signal } from '@preact/signals'
+import type { FiguraAvatar } from '@core/figura/figura-avatar'
+import type { VanillaId } from '@core/figura/vanilla-scan'
+import { buildAvatarModel } from '@core/model/build-avatar'
 import { NO_COSMETICS, type CosmeticSettings } from '@core/model/cosmetics'
-import { buildVanillaAvatar } from '@core/model/vanilla-avatar'
 import { createPlaceholderSkin } from '@core/skin/placeholder-skin'
 import { normalizeSkin, type NormalizedSkin, type SkinModelType } from '@core/skin/skin'
 
@@ -41,7 +43,34 @@ export const effectiveModel = computed<SkinModelType>(() => (modelChoice.value =
 /** Eingebautes Test-Zubehör; wird pro Avatar mit der Rollen-Zuordnung gespeichert (siehe rig-state). */
 export const cosmeticSettings = signal<CosmeticSettings>(NO_COSMETICS)
 
-export const avatarModel = computed(() => buildVanillaAvatar(loadedSkin.value.skin, effectiveModel.value, cosmeticSettings.value))
+export interface LoadedFigura {
+  /** Schlüssel des Ordners (auch für die gespeicherte Zuordnung). */
+  readonly key: string
+  readonly location: string
+  readonly avatar: FiguraAvatar
+}
+
+/** Geladener Figura-Avatar (zusätzlich zum Skin, der den Minecraft-Körper liefert). */
+export const loadedFigura = signal<LoadedFigura | null>(null)
+
+/** Eigene Auswahl ausgeblendeter Vanilla-Teile; null = wie im Figura-Skript. Wird mit der Zuordnung gespeichert. */
+export const vanillaOverride = signal<readonly VanillaId[] | null>(null)
+
+export const vanillaHidden = computed<ReadonlySet<VanillaId>>(() => {
+  const figura = loadedFigura.value
+  if (!figura) return new Set()
+  return new Set(vanillaOverride.value ?? figura.avatar.hiddenVanilla)
+})
+
+export const avatarModel = computed(() =>
+  buildAvatarModel({
+    skin: loadedSkin.value.skin,
+    modelType: effectiveModel.value,
+    cosmetics: cosmeticSettings.value,
+    figura: loadedFigura.value?.avatar ?? null,
+    vanillaHidden: vanillaHidden.value
+  })
+)
 
 // ---------------------------------------------------------------------------
 // Hinweise/Fehlermeldungen („Toasts“)

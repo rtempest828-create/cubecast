@@ -4,6 +4,7 @@ import type { SkinModelType } from '@core/skin/skin'
 import { t } from '@shared/i18n'
 import { PLAYER_NAME_PATTERN } from '@shared/ipc'
 import { SkinPreview } from '../components/SkinPreview'
+import { FiguraCard } from './FiguraCard'
 import { downloadPlayerSkin, openSkinFileDialog } from '../skin/skin-loader'
 import { autoModel, loadedSkin, modelChoice, showOuterLayer, type LoadedSkin, type ModelChoice } from '../state/app-state'
 
@@ -76,6 +77,8 @@ export function ModelPanel(): JSX.Element {
         <PlayerNameForm />
         <p class="hint">{t('model.downloadNote')}</p>
       </section>
+
+      <FiguraCard />
 
       <section class="card">
         <h2 class="card-title">{t('model.section.current')}</h2>

@@ -9,7 +9,10 @@ export const IPC = {
   skinDownloadByName: 'skin:download-by-name',
   skinOpenFile: 'skin:open-file',
   avatarConfigLoad: 'avatar-config:load',
-  avatarConfigSave: 'avatar-config:save'
+  avatarConfigSave: 'avatar-config:save',
+  figuraList: 'figura:list',
+  figuraLoad: 'figura:load',
+  figuraOpenFolder: 'figura:open-folder'
 } as const
 
 export type SkinDownloadError =
@@ -31,6 +34,28 @@ export type OpenFileResult =
   | { readonly ok: true; readonly data: Uint8Array; readonly fileName: string }
   | { readonly ok: false; readonly error: OpenFileError }
 
+/** Ein gefundener Figura-Avatar-Ordner. `key` ist zugleich der Schlüssel der gespeicherten Zuordnung. */
+export interface FiguraAvatarEntry {
+  readonly key: string
+  readonly name: string
+  /** Wo er gefunden wurde, z. B. „Modrinth – Fabric 1.21.11“. */
+  readonly location: string
+  readonly folder: string
+}
+
+export type FiguraLoadError = 'cancelled' | 'not-found' | 'too-large' | 'read-failed' | 'no-avatar'
+
+export type FiguraFolderResult =
+  | {
+      readonly ok: true
+      readonly key: string
+      readonly folderName: string
+      readonly location: string
+      /** Dateien relativ zum Ordner (mit „/“); nur .json, .bbmodel, .lua, .png. */
+      readonly files: readonly { readonly path: string; readonly data: Uint8Array }[]
+    }
+  | { readonly ok: false; readonly error: FiguraLoadError }
+
 /** Im Renderer als `window.vtuber` verfügbar. */
 export interface VtuberApi {
   readonly skin: {
@@ -43,6 +68,14 @@ export interface VtuberApi {
   readonly avatarConfig: {
     load(key: string): Promise<unknown>
     save(key: string, data: unknown): Promise<boolean>
+  }
+  /** Figura-Avatare: werden nur gelesen, nie verändert. */
+  readonly figura: {
+    /** Sucht Avatare in den Figura-Ordnern bekannter Launcher. */
+    list(): Promise<readonly FiguraAvatarEntry[]>
+    load(key: string): Promise<FiguraFolderResult>
+    /** Ordnerdialog für einen Avatar an beliebiger Stelle. */
+    openFolder(): Promise<FiguraFolderResult>
   }
 }
 

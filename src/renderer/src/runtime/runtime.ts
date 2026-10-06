@@ -42,7 +42,7 @@ const EMOTION_HOLD_MS = 150
 /** Ruhewerte der Mimik aus „Neutrale Pose setzen“. */
 let blendshapeBaseline: Float32Array | null = null
 
-const HIDDEN_OVERLAY: PartPose = { rotation: [0, 0, 0], position: [0, 0, 0], scale: [1, 1, 1], visible: false, uvOffset: [0, 0], frame: 0 }
+const HIDDEN_OVERLAY: PartPose = { rotation: [0, 0, 0], position: [0, 0, 0], scale: [1, 1, 1], visible: false, shown: false, uvOffset: [0, 0], frame: 0 }
 
 export function attachRuntime(viewport: Viewport): () => void {
   let lastDebug = 0

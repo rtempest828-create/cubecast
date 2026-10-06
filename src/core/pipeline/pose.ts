@@ -6,6 +6,7 @@ import type { Vec3 } from '../math/vec'
  * - `position`: Pixel, addiert
  * - `scale`: Faktor, multipliziert
  * - `visible`: false blendet das Teil (mit Kindern) aus
+ * - `shown`: true blendet ein im Modell ausgeblendetes Teil ein (z. B. Ausdrucks-Gruppe „AugenZu“)
  * - `uvOffset`: Textur-Verschiebung in Pixeln
  * - `frame`: Bildnummer für Bildwechsel (Gesichts-Overlay)
  */
@@ -14,6 +15,7 @@ export interface PartPose {
   readonly position: Vec3
   readonly scale: Vec3
   readonly visible: boolean
+  readonly shown: boolean
   readonly uvOffset: readonly [number, number]
   readonly frame: number
 }
@@ -27,6 +29,7 @@ export interface MutablePartPose {
   position: [number, number, number]
   scale: [number, number, number]
   visible: boolean
+  shown: boolean
   uvOffset: [number, number]
   frame: number
 }
@@ -38,7 +41,7 @@ export class PoseBuilder {
   part(id: string): MutablePartPose {
     let entry = this.parts.get(id)
     if (!entry) {
-      entry = { rotation: [0, 0, 0], position: [0, 0, 0], scale: [1, 1, 1], visible: true, uvOffset: [0, 0], frame: 0 }
+      entry = { rotation: [0, 0, 0], position: [0, 0, 0], scale: [1, 1, 1], visible: true, shown: false, uvOffset: [0, 0], frame: 0 }
       this.parts.set(id, entry)
     }
     return entry
@@ -62,6 +65,7 @@ export class PoseBuilder {
         position: [p.position[0], p.position[1], p.position[2]],
         scale: [p.scale[0], p.scale[1], p.scale[2]],
         visible: p.visible,
+        shown: p.shown,
         uvOffset: [p.uvOffset[0], p.uvOffset[1]],
         frame: p.frame
       })

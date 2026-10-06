@@ -1,12 +1,13 @@
 # Minecraft VTuber
 
-Windows-Desktop-App, die einen Minecraft-Skin (und später Figura-Avatare) als blockiges 3D-Modell
+Windows-Desktop-App, die einen Minecraft-Skin oder Figura-Avatar als blockiges 3D-Modell
 darstellt und per Webcam-Face-Tracking steuert – zum Streamen mit OBS oder für Discord.
 Alles läuft lokal, ohne Konto und ohne Cloud.
 
-> **Stand: Meilenstein M4** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
-> Körper-Mitbewegung und Leerlauf, Physik (mit Test-Zubehör), Arm-Tracking, Mikrofon-Lip-Sync.
-> Figura-Import und Streaming-Ausgabe folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
+> **Stand: Meilenstein M5a** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
+> Körper-Mitbewegung und Leerlauf, Physik (mit Test-Zubehör), Arm-Tracking, Mikrofon-Lip-Sync,
+> Figura-Avatare (`.bbmodel`) importieren. Blockbench-Animationen (M5b), Lua-Skripte (M5c) und
+> Streaming-Ausgabe (M6) folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
 
 ## Installation
 
@@ -56,6 +57,26 @@ npm run lint
 
 Unterstützt werden 64×64-Skins, das alte 64×32-Format (wird wie in Minecraft automatisch umgewandelt)
 und HD-Skins (128×128, 256×256 …).
+
+### Figura-Avatar (Bereich „Modell“)
+
+- Beim Öffnen sucht die App Avatare in den Figura-Ordnern von offiziellem Launcher
+  (`%APPDATA%\.minecraft\figura\avatars`), Modrinth App, CurseForge, Prism Launcher und MultiMC.
+  Avatar wählen → **Laden**. Liegt er woanders: **Ordner wählen …**
+- Die Dateien werden nur gelesen (nur `.json`, `.bbmodel`, `.lua`, `.png`; keine Verknüpfungen,
+  höchstens 2000 Dateien / 64 MB). Einstellungen werden getrennt gespeichert.
+- Gruppen mit Figura-„Parent-Types“ (`Head`, `Body`, `LeftArm`, `RightLeg`, `Cape` …) folgen sofort
+  Kopf-Tracking, Körperneigung und Armen. Gruppen für Spielansichten (`Skull`, `Gui`, `Hud`, `Camera`,
+  Item-Pivots) werden ausgeblendet.
+- Ohren, Schwänze, Haare/Zöpfe und Ausdrucks-Varianten (`AugenZu`, `EyesHappy`, `MundOffen` …) werden
+  anhand der Namen erkannt und als Rollen **vorgeschlagen**. „Alle Vorschläge bestätigen“ übernimmt sie
+  auf einmal; danach schwingen Ohren und Schwanz mit der Physik, und die Ausdrucks-Varianten werden
+  bei passender Mimik eingeblendet (Augen zu beim Blinzeln, Mund offen beim Sprechen, froh beim Lächeln …).
+  Einzelne Vorschläge lassen sich im Debug-Modus (F12) ändern.
+- **Minecraft-Körper:** Welche Vanilla-Teile sichtbar sind, liest die App vorerst aus Aufrufen wie
+  `vanilla_model.PLAYER:setVisible(false)` im Skript. Mit „Eigene Auswahl“ lässt sich das überschreiben.
+- Lua-Skripte werden erst ab M5c ausgeführt, Blockbench-Animationen ab M5b. Hinweise dazu stehen
+  aufklappbar unter dem geladenen Avatar.
 
 ### Modelltyp
 
@@ -154,6 +175,10 @@ Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
   dafür gibt es „Links/Rechts der Mimik vertauschen“.
 - Arm-Tracking zeigt nur die Richtung Schulter → Handgelenk; Minecraft-Arme können nicht abknicken.
 - Lip-Sync schätzt nur Lautstärke und „rund/offen“, keine einzelnen Laute.
+- Figura (bis M5c): Lua-Skripte laufen noch nicht. Was ein Skript selbst macht (Schweif wedeln,
+  Emotes per Aktionsrad, Augen per Skript umschalten), übernehmen bis dahin Rollen, Physik und Tracking.
+- Figura: Teile mit der Skin-Textur des Spielers (`primary texture = SKIN`), Kamera-/HUD-Ansichten,
+  Sounds und `.moon`-Dateien werden nicht unterstützt.
 
 ## Datenschutz und Sicherheit
 
@@ -163,6 +188,8 @@ Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
 - Die gebaute App lädt ihre Dateien über das lokale Protokoll `app://bundle/` (nur aus dem eigenen
   Programmordner, Pfade außerhalb werden abgewiesen).
 - Das MediaPipe-Modell wird mitgeliefert (`resources/mediapipe/`), es wird nichts nachgeladen.
+- Figura-Ordner liest nur der Hauptprozess. Die Oberfläche kennt nur Schlüssel gefundener bzw. per
+  Dialog gewählter Ordner und kann keine beliebigen Pfade anfordern.
 
 ## Einbindung in OBS
 
@@ -171,10 +198,10 @@ Folgt in Meilenstein M6 (Browser-Quelle `http://localhost:PORT` mit transparente
 ## Projektstruktur
 
 ```
-src/core/      Plattformunabhängige Logik (PNG, Skin, Modell, später Tracking, Animation …)
+src/core/      Plattformunabhängige Logik (PNG, Skin, Modell, Blockbench/Figura, Tracking, Rollen, Physik …)
 src/render/    Three.js-Darstellung (von App und später OBS-Viewer genutzt)
 src/renderer/  Oberfläche (Preact)
-src/main/      Electron-Hauptprozess (Fenster, Dateien, Skin-Download, Netzwerk-Sperre)
+src/main/      Electron-Hauptprozess (Fenster, Dateien, Figura-Import, Skin-Download, Netzwerk-Sperre)
 src/preload/   Schmale, typisierte Brücke zwischen Oberfläche und Hauptprozess
 src/shared/    IPC-Verträge und Übersetzungen
 tests/         Unit-Tests und Testdaten

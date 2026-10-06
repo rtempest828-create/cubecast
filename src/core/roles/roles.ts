@@ -109,7 +109,7 @@ const KEYWORDS: readonly (readonly [readonly string[], BuiltinRole | 'eye' | 'pu
   [['nose', 'nase', 'snout', 'schnauze'], 'nose'],
   [['ear', 'ohr', 'ohren'], 'ear'],
   [['tail', 'schwanz', 'schweif'], 'tail'],
-  [['hair', 'haar', 'haare', 'bangs', 'ponytail', 'fringe'], 'hair'],
+  [['hair', 'haar', 'haare', 'bangs', 'ponytail', 'fringe', 'zopf', 'zoepfe', 'braid', 'pigtail', 'strand'], 'hair'],
   [['wing', 'fluegel'], 'wings'],
   [['head', 'kopf'], 'head'],
   [['body', 'torso', 'koerper', 'chest'], 'body'],

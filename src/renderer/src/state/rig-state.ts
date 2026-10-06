@@ -7,8 +7,9 @@ import { generateFaceVariants } from '@core/face/face-variants'
 import type { RgbaImage } from '@core/image/rgba-image'
 import { logger } from '@core/log/logger'
 import type { CosmeticSettings } from '@core/model/cosmetics'
-import { createDefaultRig, parseCosmetics, parseRig, rerunAutoDetection, withDefaults, type AvatarRig, type FaceRigSettings } from '@core/roles/rig'
-import { avatarModel, cosmeticSettings, loadedSkin } from './app-state'
+import type { VanillaId } from '@core/figura/vanilla-scan'
+import { createDefaultRig, parseCosmetics, parseRig, parseVanillaHidden, rerunAutoDetection, withDefaults, type AvatarRig, type FaceRigSettings } from '@core/roles/rig'
+import { avatarModel, cosmeticSettings, loadedFigura, loadedSkin, vanillaOverride } from './app-state'
 
 /**
  * Rollen-Zuordnung und Gesichts-Overlay des aktuellen Avatars.
@@ -35,6 +36,8 @@ export const currentFaceState = signal<FaceState>(NEUTRAL_FACE_STATE)
 
 const SAVE_DELAY_MS = 400
 let saveTimer: ReturnType<typeof setTimeout> | null = null
+/** Ausstehendes Speichern (wird beim Avatarwechsel sofort ausgeführt). */
+let pendingSave: (() => void) | null = null
 let loadToken = 0
 
 /** Schlüssel aus dem Bildinhalt: derselbe Skin bekommt immer dieselbe Zuordnung. */
@@ -48,17 +51,22 @@ function hasBridge(): boolean {
   return typeof window !== 'undefined' && 'vtuber' in window
 }
 
-// Beim Wechsel des Skins die gespeicherte Zuordnung laden.
+// Beim Wechsel des Skins bzw. Figura-Avatars die gespeicherte Zuordnung laden.
+// Ein Figura-Avatar hat seine eigene Zuordnung (pro Ordner), unabhängig vom Skin.
 effect(() => {
   const skin = loadedSkin.value.skin
+  const figuraKey = loadedFigura.value?.key ?? null
   const token = ++loadToken
+  flushSave()
   avatarKey.value = null
   void (async () => {
-    const key = await skinKey(skin.image)
+    const key = figuraKey ?? (await skinKey(skin.image))
     const stored = hasBridge() ? await window.vtuber.avatarConfig.load(key) : null
     if (token !== loadToken) return
-    // Zubehör zuerst setzen, damit das Modell (und damit die Teile) schon stimmt.
-    cosmeticSettings.value = parseCosmetics(typeof stored === 'object' && stored !== null ? (stored as Record<string, unknown>)['cosmetics'] : null)
+    // Zubehör und Vanilla-Auswahl zuerst setzen, damit das Modell (und damit die Teile) schon stimmt.
+    const record = typeof stored === 'object' && stored !== null ? (stored as Record<string, unknown>) : {}
+    cosmeticSettings.value = parseCosmetics(record['cosmetics'])
+    vanillaOverride.value = parseVanillaHidden(record['vanillaHidden'])
     const { rig: parsed, warnings } = parseRig(stored, avatarModel.peek())
     for (const warning of warnings) logger.warn('Rollen', warning)
     rigWarnings.value = warnings
@@ -71,12 +79,21 @@ function scheduleSave(): void {
   const key = avatarKey.peek()
   if (!key || !hasBridge()) return
   if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    saveTimer = null
+  pendingSave = () => {
     void window.vtuber.avatarConfig.save(key, rig.peek()).then((ok) => {
       if (!ok) logger.warn('Rollen', 'Die Zuordnung konnte nicht gespeichert werden.')
     })
-  }, SAVE_DELAY_MS)
+  }
+  saveTimer = setTimeout(flushSave, SAVE_DELAY_MS)
+}
+
+/** Speichert ausstehende Änderungen sofort (z. B. bevor ein anderer Avatar geladen wird). */
+function flushSave(): void {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = null
+  const save = pendingSave
+  pendingSave = null
+  save?.()
 }
 
 /** Ändert die Zuordnung und speichert sie (verzögert). */
@@ -90,7 +107,23 @@ export function updateFaceSettings(patch: Partial<FaceRigSettings>): void {
 }
 
 export function resetRig(): void {
-  updateRig({ ...createDefaultRig(avatarModel.peek()), cosmetics: rig.peek().cosmetics })
+  updateRig({ ...createDefaultRig(avatarModel.peek()), cosmetics: rig.peek().cosmetics, vanillaHidden: rig.peek().vanillaHidden ?? null })
+}
+
+/** Vanilla-Teile ein-/ausblenden (null = wie im Figura-Skript). */
+export function updateVanillaHidden(hidden: readonly VanillaId[] | null): void {
+  vanillaOverride.value = hidden
+  updateRig(withDefaults({ ...rig.peek(), vanillaHidden: hidden }, avatarModel.peek()))
+}
+
+/** Unbestätigte Vorschläge der Auto-Erkennung. */
+export const pendingSuggestions = computed(() => rig.value.assignments.filter((a) => !a.confirmed).length)
+
+/** Bestätigt alle Vorschläge auf einmal. Gibt die Anzahl zurück. */
+export function confirmAllSuggestions(): number {
+  const count = pendingSuggestions.peek()
+  if (count > 0) updateRig({ ...rig.peek(), assignments: rig.peek().assignments.map((a) => (a.confirmed ? a : { ...a, confirmed: true })) })
+  return count
 }
 
 /** Test-Zubehör ein-/ausschalten (Modell wird neu aufgebaut, Rollen ergänzt). */

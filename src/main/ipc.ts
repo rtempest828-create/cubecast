@@ -1,9 +1,10 @@
 import { readFile, stat } from 'node:fs/promises'
 import { basename } from 'node:path'
-import { BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { t } from '../shared/i18n'
-import { IPC, MAX_SKIN_FILE_BYTES, type OpenFileResult, type SkinDownloadResult } from '../shared/ipc'
+import { IPC, MAX_SKIN_FILE_BYTES, type FiguraAvatarEntry, type FiguraFolderResult, type OpenFileResult, type SkinDownloadResult } from '../shared/ipc'
 import type { AvatarStore } from './avatar-store'
+import { FiguraRegistry } from './figura-import'
 import { downloadSkinByName } from './skin-download'
 
 /** Nur Anfragen aus unseren eigenen Fenstern beantworten. */
@@ -28,6 +29,33 @@ function isTrustedSender(event: IpcMainInvokeEvent, appUrl: string): boolean {
 }
 
 export function registerIpcHandlers(appUrl: string, avatarStore: AvatarStore): void {
+  const figura = new FiguraRegistry()
+
+  ipcMain.handle(IPC.figuraList, async (event): Promise<readonly FiguraAvatarEntry[]> => {
+    if (!isTrustedSender(event, appUrl)) return []
+    try {
+      return await figura.scan(app.getPath('appData'))
+    } catch (error) {
+      console.warn('[Figura] Suche fehlgeschlagen:', error)
+      return []
+    }
+  })
+
+  ipcMain.handle(IPC.figuraLoad, async (event, key: unknown): Promise<FiguraFolderResult> => {
+    if (!isTrustedSender(event, appUrl) || typeof key !== 'string') return { ok: false, error: 'not-found' }
+    return figura.load(key)
+  })
+
+  ipcMain.handle(IPC.figuraOpenFolder, async (event): Promise<FiguraFolderResult> => {
+    if (!isTrustedSender(event, appUrl)) return { ok: false, error: 'read-failed' }
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.OpenDialogOptions = { title: t('dialog.openFigura.title'), properties: ['openDirectory'] }
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options)
+    const folder = result.filePaths[0]
+    if (result.canceled || !folder) return { ok: false, error: 'cancelled' }
+    return figura.load(figura.register(folder, t('figura.location.folder')))
+  })
+
   ipcMain.handle(IPC.avatarConfigLoad, async (event, key: unknown): Promise<unknown> => {
     if (!isTrustedSender(event, appUrl)) return null
     return avatarStore.load(key)

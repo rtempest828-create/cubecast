@@ -22,10 +22,31 @@ import type { CellRect } from '../core/face/face-layout'
 import type { RgbaImage } from '../core/image/rgba-image'
 import { sub3, type Vec3 } from '../core/math/vec'
 import type { AvatarModel, CubeDef, PartNode, PartOrigin, RenderLayer } from '../core/model/avatar-model'
-import { buildCubeGeometry } from '../core/model/cube-geometry'
+import { buildCubeGeometry, buildMeshGeometry, type GeometryData } from '../core/model/cube-geometry'
 import type { Pose } from '../core/pipeline/pose'
 import { FACE_PART_IDS } from '../core/roles/rig'
 import { createPixelTexture } from './pixel-texture'
+
+/** Setzt/entfernt `id` in `set`; true, wenn sich etwas geändert hat. */
+function toggle(set: Set<string>, id: string, wanted: boolean): boolean {
+  if (set.has(id) === wanted) return false
+  if (wanted) set.add(id)
+  else set.delete(id)
+  return true
+}
+
+/** Leucht-Textur: Farbe mit Deckkraft multiplizieren, damit durchsichtige Pixel nicht leuchten. */
+function premultiplied(image: RgbaImage): RgbaImage {
+  const data = new Uint8ClampedArray(image.data)
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3]! / 255
+    data[i] = data[i]! * a
+    data[i + 1] = data[i + 1]! * a
+    data[i + 2] = data[i + 2]! * a
+    data[i + 3] = 255
+  }
+  return { ...image, data }
+}
 
 const HIGHLIGHT_COLOR = 0x74d77f
 const FACE_HIGHLIGHT_COLOR = 0xffd166
@@ -42,7 +63,13 @@ interface PartRecord {
 interface MeshRecord {
   readonly mesh: Mesh
   readonly part: PartRecord
-  readonly cube: CubeDef
+  /** Würfel oder null bei einem freien Polygonnetz (Blockbench-„Mesh“). */
+  readonly cube: CubeDef | null
+  readonly elementId: string
+  readonly textureId: string
+  readonly layer: RenderLayer
+  /** Sichtbarkeit des Elements selbst (Blockbench-Auge). */
+  readonly elementVisible: boolean
   readonly baseUvs: Float32Array
   readonly uvWidth: number
   readonly uvHeight: number
@@ -73,12 +100,14 @@ export class AvatarObject {
   private readonly geometries: BufferGeometry[] = []
   private readonly materials = new Map<string, MeshLambertMaterial>()
   private readonly textures = new Map<string, DataTexture>()
+  private readonly emissiveTextures = new Map<string, DataTexture>()
   private readonly posedParts = new Set<string>()
 
   private readonly hiddenOrigins = new Set<PartOrigin>()
   private debugHidden: ReadonlySet<string> = new Set()
   private solo: ReadonlySet<string> = new Set()
   private readonly poseHidden = new Set<string>()
+  private readonly poseShown = new Set<string>()
 
   private highlightObjects: Object3D[] = []
   private pivotHelpers: Object3D[] = []
@@ -86,7 +115,10 @@ export class AvatarObject {
   private readonly faceHighlightMaterial = new LineBasicMaterial({ color: FACE_HIGHLIGHT_COLOR, depthTest: false, transparent: true })
 
   constructor(private readonly model: AvatarModel) {
-    for (const def of model.textures.values()) this.textures.set(def.id, createPixelTexture(def.image))
+    for (const def of model.textures.values()) {
+      this.textures.set(def.id, createPixelTexture(def.image))
+      if (def.emissive) this.emissiveTextures.set(def.id, createPixelTexture(premultiplied(def.emissive)))
+    }
     this.root.name = 'avatar'
     this.root.add(this.buildPart(model.root, null))
   }
@@ -119,11 +151,8 @@ export class AvatarObject {
       )
       group.position.set(restPosition.x + partPose.position[0], restPosition.y + partPose.position[1], restPosition.z + partPose.position[2])
       group.scale.set(partPose.scale[0], partPose.scale[1], partPose.scale[2])
-      if (partPose.visible === this.poseHidden.has(id)) {
-        if (partPose.visible) this.poseHidden.delete(id)
-        else this.poseHidden.add(id)
-        visibilityChanged = true
-      }
+      if (toggle(this.poseHidden, id, !partPose.visible)) visibilityChanged = true
+      if (toggle(this.poseShown, id, partPose.shown)) visibilityChanged = true
       for (const mesh of record.meshes) this.setUvOffset(mesh, partPose.uvOffset)
       this.posedParts.add(id)
     }
@@ -137,7 +166,8 @@ export class AvatarObject {
     record.group.position.copy(record.restPosition)
     record.group.scale.set(1, 1, 1)
     for (const mesh of record.meshes) this.setUvOffset(mesh, [0, 0])
-    if (this.poseHidden.delete(id)) this.refreshVisibility()
+    const hiddenChanged = this.poseHidden.delete(id)
+    if (this.poseShown.delete(id) || hiddenChanged) this.refreshVisibility()
   }
 
   private setUvOffset(record: MeshRecord, offset: readonly [number, number]): void {
@@ -172,7 +202,7 @@ export class AvatarObject {
 
   private ownVisible(record: PartRecord): boolean {
     const { node } = record
-    return node.visible && !this.hiddenOrigins.has(node.origin) && !this.debugHidden.has(node.id) && !this.poseHidden.has(node.id)
+    return (node.visible || this.poseShown.has(node.id)) && !this.hiddenOrigins.has(node.origin) && !this.debugHidden.has(node.id) && !this.poseHidden.has(node.id)
   }
 
   private refreshVisibility(): void {
@@ -183,7 +213,7 @@ export class AvatarObject {
         if (!this.ownVisible(r)) visible = false
         if (this.solo.has(r.node.id)) inSolo = true
       }
-      for (const mesh of record.meshes) mesh.mesh.visible = visible && inSolo
+      for (const mesh of record.meshes) mesh.mesh.visible = visible && inSolo && mesh.elementVisible
     }
   }
 
@@ -226,8 +256,8 @@ export class AvatarObject {
       const record = visible.find((m) => m.mesh === hit.object)
       if (!record) continue
       // Beim Cutout-Material zählen nur deckende Pixel – ein Klick durch ein Hut-Loch trifft den Kopf.
-      if (record.cube.layer === 'cutout' && hit.uv && this.alphaAt(record.cube.textureId, hit.uv.x, hit.uv.y) < 26) continue
-      return { partId: record.part.node.id, cubeId: record.cube.id, uv: hit.uv ? [hit.uv.x, hit.uv.y] : null }
+      if (record.layer === 'cutout' && hit.uv && this.alphaAt(record.textureId, hit.uv.x, hit.uv.y) < 26) continue
+      return { partId: record.part.node.id, cubeId: record.elementId, uv: hit.uv ? [hit.uv.x, hit.uv.y] : null }
     }
     return null
   }
@@ -245,16 +275,16 @@ export class AvatarObject {
     this.clearHighlight()
     for (const record of this.meshes) {
       const selectedPart = this.isInSelectedPart(record.part, partIds)
-      if (!selectedPart && !cubeIds.has(record.cube.id)) continue
+      if (!selectedPart && !cubeIds.has(record.elementId)) continue
       const lines = new LineSegments(new EdgesGeometry(record.mesh.geometry), this.highlightMaterial)
       lines.renderOrder = 999
       record.mesh.add(lines)
       this.highlightObjects.push(lines)
     }
     const overlay = this.parts.get(FACE_PART_IDS.overlay)
-    const plane = overlay?.meshes[0]
+    const plane = overlay?.meshes[0]?.cube
     if (overlay && plane && faceRects.length > 0) {
-      const { from, to } = plane.cube
+      const { from, to } = plane
       const pivot = overlay.node.pivot
       const cellW = (to[0] - from[0]) / 8
       const cellH = (to[1] - from[1]) / 8
@@ -316,6 +346,7 @@ export class AvatarObject {
     for (const geometry of this.geometries) geometry.dispose()
     for (const material of this.materials.values()) material.dispose()
     for (const texture of this.textures.values()) texture.dispose()
+    for (const texture of this.emissiveTextures.values()) texture.dispose()
     this.highlightMaterial.dispose()
     this.faceHighlightMaterial.dispose()
     this.parts.clear()
@@ -332,13 +363,14 @@ export class AvatarObject {
     const record: PartRecord = { node, parent, group, restPosition: group.position.clone(), restRotation: group.rotation.clone(), meshes: [] }
     this.parts.set(node.id, record)
 
-    for (const cube of node.cubes) {
-      const texture = this.model.textures.get(cube.textureId)
+    const addElement = (element: { id: string; name: string; textureId: string; visible?: boolean }, layer: RenderLayer, cube: CubeDef | null, build: (uvW: number, uvH: number) => GeometryData): void => {
+      const texture = this.model.textures.get(element.textureId)
       if (!texture) {
-        console.warn(`[Modell] Würfel „${cube.name}“ verweist auf unbekannte Textur „${cube.textureId}“ – übersprungen.`)
-        continue
+        console.warn(`[Modell] Element „${element.name}“ verweist auf unbekannte Textur „${element.textureId}“ – übersprungen.`)
+        return
       }
-      const data = buildCubeGeometry(cube, node.pivot, texture.uvWidth, texture.uvHeight)
+      const data = build(texture.uvWidth, texture.uvHeight)
+      if (data.positions.length === 0) return
       const geometry = new BufferGeometry()
       geometry.setAttribute('position', new BufferAttribute(data.positions, 3))
       geometry.setAttribute('normal', new BufferAttribute(data.normals, 3))
@@ -346,15 +378,30 @@ export class AvatarObject {
       geometry.setIndex(new BufferAttribute(data.indices, 1))
       this.geometries.push(geometry)
 
-      const mesh = new Mesh(geometry, this.material(cube.textureId, cube.layer))
-      mesh.name = cube.name
-      mesh.userData['cubeId'] = cube.id
+      const mesh = new Mesh(geometry, this.material(element.textureId, layer))
+      mesh.name = element.name
+      mesh.userData['cubeId'] = element.id
       mesh.userData['partId'] = node.id
       group.add(mesh)
-      const meshRecord: MeshRecord = { mesh, part: record, cube, baseUvs: data.uvs, uvWidth: texture.uvWidth, uvHeight: texture.uvHeight, uvOffset: [0, 0] }
+      const meshRecord: MeshRecord = {
+        mesh,
+        part: record,
+        cube,
+        elementId: element.id,
+        textureId: element.textureId,
+        layer,
+        elementVisible: element.visible !== false,
+        baseUvs: data.uvs,
+        uvWidth: texture.uvWidth,
+        uvHeight: texture.uvHeight,
+        uvOffset: [0, 0]
+      }
       record.meshes.push(meshRecord)
       this.meshes.push(meshRecord)
     }
+    for (const cube of node.cubes) addElement(cube, cube.layer, cube, (w, h) => buildCubeGeometry(cube, node.pivot, w, h))
+    // Polygonnetze können offen sein und nach innen zeigen – daher wie Cutout beidseitig.
+    for (const mesh of node.meshes ?? []) addElement(mesh, 'cutout', null, (w, h) => buildMeshGeometry(mesh, node.pivot, w, h))
 
     for (const child of node.children) group.add(this.buildPart(child, record))
     return group
@@ -365,8 +412,11 @@ export class AvatarObject {
     let material = this.materials.get(key)
     if (!material) {
       const cutout = layer === 'cutout'
+      const emissive = this.emissiveTextures.get(textureId) ?? null
       material = new MeshLambertMaterial({
         map: this.textures.get(textureId) ?? null,
+        // Figuras „_e“-Textur: diese Pixel leuchten unabhängig vom Licht.
+        ...(emissive ? { emissiveMap: emissive, emissive: 0xffffff } : {}),
         // Cutout wie Minecrafts Außenschicht: Pixel sind ganz sichtbar oder ganz weg, beidseitig.
         alphaTest: cutout ? 0.1 : 0,
         side: cutout ? DoubleSide : FrontSide

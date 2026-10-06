@@ -28,6 +28,8 @@ export const AUDIO_SIGNALS = ['audio.level', 'audio.round'] as const
 export const DERIVED_SIGNALS = [
   'blink.left',
   'blink.right',
+  'blink.both',
+  'wink',
   'gaze.x',
   'gaze.y',
   'brow.left',
@@ -92,7 +94,8 @@ const clamp = (value: number, min: number, max: number): number => Math.max(min,
 
 /**
  * Abgeleitete Signale (alle aus Sicht der Figur):
- * - `blink.*`: Lidschluss 0…1
+ * - `blink.*`: Lidschluss 0…1 (`blink.both`: beide Augen zu)
+ * - `wink`: 0…1, ein Auge zu, das andere offen
  * - `gaze.x`: −1…1, positiv = Figur schaut zu ihrer linken Seite (+X)
  * - `gaze.y`: −1…1, positiv = nach oben
  * - `brow.*`: −1…1, positiv = Braue hoch, negativ = runter
@@ -103,6 +106,8 @@ export function deriveSignals(b: Readonly<Record<string, number>>): Record<strin
   return {
     'blink.left': v('eyeBlinkLeft'),
     'blink.right': v('eyeBlinkRight'),
+    'blink.both': Math.min(v('eyeBlinkLeft'), v('eyeBlinkRight')),
+    'wink': Math.abs(v('eyeBlinkLeft') - v('eyeBlinkRight')),
     'gaze.x': clamp((v('eyeLookOutLeft') + v('eyeLookInRight') - v('eyeLookInLeft') - v('eyeLookOutRight')) / 2, -1, 1),
     'gaze.y': clamp((v('eyeLookUpLeft') + v('eyeLookUpRight') - v('eyeLookDownLeft') - v('eyeLookDownRight')) / 2, -1, 1),
     'brow.left': clamp((v('browInnerUp') + v('browOuterUpLeft')) / 2 - v('browDownLeft'), -1, 1),

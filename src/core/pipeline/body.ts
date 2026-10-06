@@ -43,9 +43,41 @@ export interface BodyInputs {
   readonly arms?: { readonly left: ArmPose; readonly right: ArmPose } | null
 }
 
-/** Erstes bestätigtes Teil mit dieser Rolle. */
-export function partWithRole(rig: AvatarRig, role: RoleId): string | null {
-  return rig.assignments.find((a) => a.confirmed && a.role === role)?.partId ?? null
+/** Elternteil jedes Teils (pro Modell zwischengespeichert, das Modell ist unveränderlich). */
+const parentCache = new WeakMap<AvatarModel, ReadonlyMap<string, string>>()
+function parentsOf(model: AvatarModel): ReadonlyMap<string, string> {
+  let parents = parentCache.get(model)
+  if (!parents) {
+    const map = new Map<string, string>()
+    const visit = (node: PartNode): void => {
+      for (const child of node.children) {
+        map.set(child.id, node.id)
+        visit(child)
+      }
+    }
+    visit(model.root)
+    parents = map
+    parentCache.set(model, parents)
+  }
+  return parents
+}
+
+/**
+ * Alle bestätigten Teile mit dieser Rolle (z. B. Vanilla-Kopf und Figura-„Head“).
+ * Teile, die schon über ein Vorfahr-Teil mit derselben Rolle mitbewegt werden, fallen weg.
+ */
+export function partsWithRole(rig: AvatarRig, model: AvatarModel, role: RoleId): string[] {
+  return topLevel(model, rig.assignments.filter((a) => a.confirmed && a.role === role).map((a) => a.partId))
+}
+
+/** Entfernt Teile, deren Vorfahr ebenfalls in der Liste steht (würden sonst doppelt bewegt). */
+export function topLevel(model: AvatarModel, list: readonly string[]): string[] {
+  const ids = new Set(list)
+  const parents = parentsOf(model)
+  return [...ids].filter((id) => {
+    for (let p = parents.get(id); p !== undefined; p = parents.get(p)) if (ids.has(p)) return false
+    return true
+  })
 }
 
 /** Drehpunkte und Hüfthöhe (Unterkante des Körpers) aus dem Modell. */
@@ -89,12 +121,12 @@ const clamp = (v: number, limit: number): number => Math.max(-limit, Math.min(li
 
 export function applyBody(pose: PoseBuilder, model: AvatarModel, rig: AvatarRig, settings: BodySettings, inputs: BodyInputs): void {
   const ids = {
-    head: partWithRole(rig, 'head'),
-    body: partWithRole(rig, 'body'),
-    leftArm: partWithRole(rig, 'leftArm'),
-    rightArm: partWithRole(rig, 'rightArm')
+    head: partsWithRole(rig, model, 'head'),
+    body: partsWithRole(rig, model, 'body'),
+    leftArm: partsWithRole(rig, model, 'leftArm'),
+    rightArm: partsWithRole(rig, model, 'rightArm')
   }
-  const { pivots, hip } = bodyGeometry(model, ids.body)
+  const { pivots, hip } = bodyGeometry(model, ids.body[0] ?? null)
   const t = inputs.timeSec
   const s = inputs.signals
   const sig = (name: string): number => s[name] ?? 0
@@ -105,27 +137,27 @@ export function applyBody(pose: PoseBuilder, model: AvatarModel, rig: AvatarRig,
   const bobX = Math.sin(ticks * 0.067) * 0.05 * DEG
   const breath = Math.sin((2 * Math.PI * t) / 4.5) * settings.breathing
   for (const side of ['left', 'right'] as const) {
-    const id = side === 'left' ? ids.leftArm : ids.rightArm
-    if (!id) continue
-    const part = pose.part(id)
     const outward = side === 'left' ? 1 : -1
     const idleWeight = settings.armIdle ? 1 : 0
     const tracked = inputs.arms?.[side]
     const w = tracked ? Math.max(0, Math.min(1, tracked.weight)) : 0
-    // Leerlauf (ausgeblendet, sobald Tracking übernimmt)
-    part.rotation[2] += (outward * bobZ + outward * breath * 1.2) * idleWeight * (1 - w)
-    part.rotation[0] += (side === 'left' ? -bobX : bobX) * idleWeight * (1 - w)
-    if (tracked && w > 0) {
-      part.rotation[0] += tracked.rotation[0] * w
-      part.rotation[1] += tracked.rotation[1] * w
-      part.rotation[2] += tracked.rotation[2] * w
+    for (const id of side === 'left' ? ids.leftArm : ids.rightArm) {
+      const part = pose.part(id)
+      // Leerlauf (ausgeblendet, sobald Tracking übernimmt)
+      part.rotation[2] += (outward * bobZ + outward * breath * 1.2) * idleWeight * (1 - w)
+      part.rotation[0] += (side === 'left' ? -bobX : bobX) * idleWeight * (1 - w)
+      if (tracked && w > 0) {
+        part.rotation[0] += tracked.rotation[0] * w
+        part.rotation[1] += tracked.rotation[1] * w
+        part.rotation[2] += tracked.rotation[2] * w
+      }
     }
   }
 
   // --- Atmen: Schultern und Kopf heben sich minimal ---
   if (settings.breathing > 0) {
     const lift = (breath + settings.breathing) * 0.06
-    for (const id of [ids.head, ids.leftArm, ids.rightArm]) if (id) pose.part(id).position[1] += lift
+    for (const id of [...ids.head, ...ids.leftArm, ...ids.rightArm]) pose.part(id).position[1] += lift
   }
 
   // --- Oberkörper neigt sich mit der Kopfposition und schwankt leicht ---
@@ -134,12 +166,12 @@ export function applyBody(pose: PoseBuilder, model: AvatarModel, rig: AvatarRig,
   const swayPitch = Math.sin((2 * Math.PI * t) / 9.3) * 0.6 * settings.sway
   const leanRoll = clamp(-Math.atan2(sig('head.x'), TORSO_LENGTH_CM) * DEG * f + sig('head.roll') * 0.12 * f + swayRoll, MAX_LEAN)
   const leanPitch = clamp(Math.atan2(sig('head.z'), TORSO_LENGTH_CM) * DEG * 0.6 * f + sig('head.pitch') * 0.08 * f + swayPitch, MAX_LEAN)
-  const upper = [ids.body, ids.leftArm, ids.rightArm, ids.head].filter((id): id is string => id !== null)
+  const upper = topLevel(model, [...ids.body, ...ids.leftArm, ...ids.rightArm, ...ids.head])
   // Der Kopf wird mitbewegt, behält aber die getrackte Ausrichtung.
-  const headOnly = new Set(ids.head ? [ids.head] : [])
+  const headOnly = new Set(ids.head)
   rotateGroup(pose, pivots, upper, hip, [leanPitch, 0, leanRoll], headOnly)
 
   // Schultern drehen leicht mit, wenn du den Kopf drehst.
   const torsoYaw = clamp(sig('head.yaw') * 0.2 * f, MAX_LEAN)
-  rotateGroup(pose, pivots, [ids.body, ids.leftArm, ids.rightArm].filter((id): id is string => id !== null), hip, [0, torsoYaw, 0])
+  rotateGroup(pose, pivots, topLevel(model, [...ids.body, ...ids.leftArm, ...ids.rightArm]), hip, [0, torsoYaw, 0])
 }

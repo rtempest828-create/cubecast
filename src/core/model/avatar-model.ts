@@ -25,6 +25,11 @@ export interface FaceUv {
   readonly v0: number
   readonly u1: number
   readonly v1: number
+  /**
+   * Optional: UV jeder Ecke einzeln (oben links, oben rechts, unten links, unten rechts),
+   * z. B. für gedrehte UVs aus Blockbench. Hat Vorrang vor dem Rechteck.
+   */
+  readonly corners?: readonly [readonly [number, number], readonly [number, number], readonly [number, number], readonly [number, number]]
 }
 
 /** Wie ein Würfel gezeichnet wird. */
@@ -45,6 +50,24 @@ export interface CubeDef {
   readonly layer: RenderLayer
   /** Fehlende Seiten werden nicht gezeichnet. */
   readonly faces: Readonly<Partial<Record<FaceDir, FaceUv>>>
+  /** Eigene Drehung des Würfels in Grad (Euler ZYX) um `origin` (Blockbench „Free“-Format). */
+  readonly rotation?: Vec3
+  /** Drehpunkt des Würfels (absolut). */
+  readonly origin?: Vec3
+  /** Ausgeblendete Würfel werden gebaut, aber nicht gezeigt (z. B. per Lua umschaltbar). */
+  readonly visible?: boolean
+}
+
+/** Freies Polygonnetz (Blockbench „Mesh“), bereits in Dreiecke zerlegt, absolute Koordinaten. */
+export interface MeshDef {
+  readonly id: string
+  readonly name: string
+  readonly textureId: string
+  readonly visible: boolean
+  readonly triangles: readonly {
+    readonly positions: readonly [Vec3, Vec3, Vec3]
+    readonly uvs: readonly [readonly [number, number], readonly [number, number], readonly [number, number]]
+  }[]
 }
 
 /** Herkunft eines Teils (für Baumansicht, Rollen-Vorschläge, Figura-APIs). */
@@ -59,7 +82,10 @@ export interface PartNode {
   readonly rotation: Vec3
   readonly visible: boolean
   readonly vanillaId?: VanillaPartId | VanillaLayerId
+  /** Figura-Parent-Type aus dem Gruppennamen (z. B. „Head“), falls vorhanden. */
+  readonly figuraParent?: string
   readonly cubes: readonly CubeDef[]
+  readonly meshes?: readonly MeshDef[]
   readonly children: readonly PartNode[]
 }
 
@@ -70,6 +96,8 @@ export interface TextureDef {
   /** Größe des UV-Raums (bei HD-Skins 64, obwohl das Bild größer ist). */
   readonly uvWidth: number
   readonly uvHeight: number
+  /** Leucht-Schicht (Figura: `name_e.png`), gleiche Größe wie `image`. */
+  readonly emissive?: RgbaImage
 }
 
 export interface AvatarModel {

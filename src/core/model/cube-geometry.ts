@@ -1,5 +1,6 @@
-import { cross3, dot3, sub3, type Vec3 } from '../math/vec'
-import { FACE_DIRS, type CubeDef, type FaceDir } from './avatar-model'
+import { quatFromEulerZYX, quatRotate } from '../math/quat'
+import { add3, cross3, dot3, sub3, type Vec3 } from '../math/vec'
+import { FACE_DIRS, type CubeDef, type FaceDir, type MeshDef } from './avatar-model'
 
 /** Rohdaten für eine Dreiecksgeometrie (unabhängig von Three.js). */
 export interface GeometryData {
@@ -47,6 +48,36 @@ export function faceCorners(dir: FaceDir, min: Vec3, max: Vec3): FaceCorners {
  */
 export const UV_INSET_TEXELS = 0.01
 
+type Corner = readonly [number, number]
+
+/** Verschiebt die vier UV-Ecken minimal zur Mitte (gegen Überbluten benachbarter Texel). */
+function insetCorners(corners: readonly [Corner, Corner, Corner, Corner]): Corner[] {
+  const cu = corners.reduce((s, c) => s + c[0], 0) / 4
+  const cv = corners.reduce((s, c) => s + c[1], 0) / 4
+  return corners.map(([u, v]) => [u + Math.sign(cu - u) * UV_INSET_TEXELS, v + Math.sign(cv - v) * UV_INSET_TEXELS] as const)
+}
+
+/** Geometrie eines freien Polygonnetzes relativ zu `origin`; Normalen pro Dreieck. */
+export function buildMeshGeometry(mesh: MeshDef, origin: Vec3, uvWidth: number, uvHeight: number): GeometryData {
+  const positions: number[] = []
+  const normals: number[] = []
+  const uvs: number[] = []
+  const indices: number[] = []
+  for (const triangle of mesh.triangles) {
+    const [a, b, c] = triangle.positions.map((p) => sub3(p, origin)) as [Vec3, Vec3, Vec3]
+    const n = cross3(sub3(b, a), sub3(c, a))
+    const length = Math.hypot(n[0], n[1], n[2]) || 1
+    const base = positions.length / 3
+    ;[a, b, c].forEach((p, i) => {
+      positions.push(p[0], p[1], p[2])
+      normals.push(n[0] / length, n[1] / length, n[2] / length)
+      uvs.push(triangle.uvs[i]![0] / uvWidth, triangle.uvs[i]![1] / uvHeight)
+    })
+    indices.push(base, base + 1, base + 2)
+  }
+  return { positions: new Float32Array(positions), normals: new Float32Array(normals), uvs: new Float32Array(uvs), indices: new Uint16Array(indices) }
+}
+
 /**
  * Erzeugt die Geometrie eines Würfels relativ zu `origin` (dem Drehpunkt seines Teils).
  * `uvWidth`/`uvHeight` ist die Größe des UV-Raums der Textur.
@@ -67,6 +98,9 @@ export function buildCubeGeometry(cube: CubeDef, origin: Vec3, uvWidth: number, 
   const normals: number[] = []
   const uvs: number[] = []
   const indices: number[] = []
+  // Eigene Würfeldrehung (Blockbench) um den Würfel-Drehpunkt, relativ zum Teil.
+  const rotate = cube.rotation && cube.rotation.some((r) => r !== 0) ? quatFromEulerZYX(cube.rotation[0], cube.rotation[1], cube.rotation[2]) : null
+  const pivot: Vec3 = cube.origin ? sub3(cube.origin, origin) : [0, 0, 0]
 
   for (const dir of FACE_DIRS) {
     const uv = cube.faces[dir]
@@ -74,18 +108,21 @@ export function buildCubeGeometry(cube: CubeDef, origin: Vec3, uvWidth: number, 
     const corners = faceCorners(dir, min, max)
     const normal = FACE_NORMALS[dir]
 
-    const insetU = Math.sign(uv.u1 - uv.u0) * UV_INSET_TEXELS
-    const insetV = Math.sign(uv.v1 - uv.v0) * UV_INSET_TEXELS
-    const u0 = (uv.u0 + insetU) / uvWidth
-    const u1 = (uv.u1 - insetU) / uvWidth
-    const v0 = (uv.v0 + insetV) / uvHeight
-    const v1 = (uv.v1 - insetV) / uvHeight
-    const cornerUvs: readonly (readonly [number, number])[] = [[u0, v0], [u1, v0], [u0, v1], [u1, v1]]
+    const cornerUvs = insetCorners(
+      uv.corners ?? [
+        [uv.u0, uv.v0],
+        [uv.u1, uv.v0],
+        [uv.u0, uv.v1],
+        [uv.u1, uv.v1]
+      ]
+    ).map(([u, v]) => [u / uvWidth, v / uvHeight] as const)
 
     const base = positions.length / 3
     corners.forEach((corner, i) => {
-      positions.push(corner[0], corner[1], corner[2])
-      normals.push(normal[0], normal[1], normal[2])
+      const p = rotate ? add3(quatRotate(rotate, sub3(corner, pivot)), pivot) : corner
+      const n = rotate ? quatRotate(rotate, normal) : normal
+      positions.push(p[0], p[1], p[2])
+      normals.push(n[0], n[1], n[2])
       uvs.push(cornerUvs[i]![0], cornerUvs[i]![1])
     })
 

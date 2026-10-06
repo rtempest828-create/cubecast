@@ -10,6 +10,11 @@ const api: VtuberApi = {
   avatarConfig: {
     load: (key) => ipcRenderer.invoke(IPC.avatarConfigLoad, key),
     save: (key, data) => ipcRenderer.invoke(IPC.avatarConfigSave, key, data)
+  },
+  figura: {
+    list: () => ipcRenderer.invoke(IPC.figuraList),
+    load: (key) => ipcRenderer.invoke(IPC.figuraLoad, key),
+    openFolder: () => ipcRenderer.invoke(IPC.figuraOpenFolder)
   }
 }
 

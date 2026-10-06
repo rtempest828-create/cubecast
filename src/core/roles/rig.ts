@@ -19,6 +19,9 @@ import {
 import { defaultDriversForRole, isRoleId, suggestRole, type RoleId } from './roles'
 import { MOUTH_FRAMES } from '../face/face-variants'
 import { NO_COSMETICS, type CosmeticSettings } from '../model/cosmetics'
+import { parentTypeOf } from '../figura/parent-types'
+import { suggestExpression } from './expressions'
+import { ALL_VANILLA, type VanillaId } from '../figura/vanilla-scan'
 
 /** Feste IDs der (virtuellen) Teile des Gesichts-Overlays. */
 export const FACE_PART_IDS = {
@@ -60,6 +63,8 @@ export interface AvatarRig {
   readonly face: FaceRigSettings
   /** Eingebautes Test-Zubehör (Fuchsohren, Schwanz, Headset). */
   readonly cosmetics: CosmeticSettings
+  /** Ausgeblendete Teile des Minecraft-Körpers; null/fehlend = wie im Figura-Skript. */
+  readonly vanillaHidden?: readonly VanillaId[] | null
 }
 
 /** Zuordnungen von Zubehör-Teilen bleiben erhalten, auch wenn das Zubehör gerade aus ist. */
@@ -126,6 +131,13 @@ export function defaultAssignmentFor(part: PartNode): RoleAssignment | null {
     return role ? { partId: part.id, role, confirmed: true, drivers: defaultDriversForRole(role) } : null
   }
   if (part.origin === 'bbmodel') {
+    // Figura-Parent-Types („Head“, „LeftArm“ …) hängen fest am Spielermodell – wie in Figura.
+    const parentRole = part.figuraParent ? parentTypeOf(part.figuraParent)?.role : null
+    if (parentRole) return { partId: part.id, role: parentRole, confirmed: true, drivers: defaultDriversForRole(parentRole) }
+    const expression = suggestExpression(part.name)
+    if (expression) return { partId: part.id, role: expression.role, confirmed: false, drivers: [...expression.drivers] }
+    // Ausgeblendete Gruppen sind meist Varianten („MundZunge“) – ohne passendes Signal kein Vorschlag.
+    if (!part.visible) return null
     const role = suggestRole(part.name)
     return role ? { partId: part.id, role, confirmed: false, drivers: defaultDriversForRole(role) } : null
   }
@@ -205,6 +217,12 @@ function parseDriver(value: unknown): DriverConfig | null {
   }
 }
 
+/** Liest die eigene Vanilla-Auswahl (null = wie im Skript); wird vor dem Modellaufbau gebraucht. */
+export function parseVanillaHidden(value: unknown): VanillaId[] | null {
+  if (!Array.isArray(value)) return null
+  return ALL_VANILLA.filter((id) => value.includes(id))
+}
+
 /** Liest nur die Zubehör-Einstellungen (wird vor dem Modellaufbau gebraucht). */
 export function parseCosmetics(value: unknown): CosmeticSettings {
   if (!isRecord(value)) return NO_COSMETICS
@@ -265,7 +283,8 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
         swapSides: face['swapSides'] === true,
         autoEmotion: face['autoEmotion'] !== false
       },
-      cosmetics: parseCosmetics(value['cosmetics'])
+      cosmetics: parseCosmetics(value['cosmetics']),
+      ...(Array.isArray(value['vanillaHidden']) ? { vanillaHidden: parseVanillaHidden(value['vanillaHidden']) } : {})
     },
     warnings
   }
@@ -331,9 +350,13 @@ export function evaluateRig(rig: AvatarRig, signals: Signals, dtSec: number, smo
         case 'scale':
           part.scale[axis] *= output
           break
-        case 'visibility':
-          part.visible = part.visible && t >= (driver.thresholds[0] ?? 0.5)
+        case 'visibility': {
+          // Treiber blendet ein (auch Teile, die im Modell ausgeblendet sind) und aus.
+          const on = t >= (driver.thresholds[0] ?? 0.5)
+          part.visible = part.visible && on
+          if (on) part.shown = true
           break
+        }
         case 'uvOffset':
           part.uvOffset[driver.axis === 'x' ? 0 : 1] += output
           break
