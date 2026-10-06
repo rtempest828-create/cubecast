@@ -4,8 +4,9 @@ Windows-Desktop-App, die einen Minecraft-Skin (und später Figura-Avatare) als b
 darstellt und per Webcam-Face-Tracking steuert – zum Streamen mit OBS oder für Discord.
 Alles läuft lokal, ohne Konto und ohne Cloud.
 
-> **Stand: Meilenstein M2** – Skin laden, als 3D-Modell anzeigen, Kopf per Webcam steuern.
-> Gesicht/Mimik, Physik, Figura-Import und Streaming-Ausgabe folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
+> **Stand: Meilenstein M3** – Skin laden, Kopf per Webcam steuern, Augen/Mund/Brauen/Emotionen,
+> Debug-Modus mit Rollen-Zuordnung und Tracking-Simulator. Physik, Figura-Import und
+> Streaming-Ausgabe folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
 
 ## Installation
 
@@ -88,6 +89,38 @@ Kamera und Regler werden gespeichert.
 Das Tracking läuft in einem eigenen Thread (Web Worker) auf der GPU, falls möglich, sonst auf der CPU.
 Das Kamerabild verlässt den PC nicht.
 
+„Neutrale Pose setzen“ übernimmt auch die **Ruhewerte der Mimik**. Das hilft z. B., wenn ein
+Headset-Mikrofon den Mundwinkel teilweise verdeckt. Den Mikrofonarm am besten seitlich am Mund
+vorbeiführen, nicht direkt davor.
+
+### Gesicht & Emotionen
+
+Minecraft-Gesichter sind ein statisches 8 × 8-Bild. Die App legt deshalb ein **Gesichts-Overlay**
+knapp vor den Kopf und setzt das Gesicht in jedem Frame neu zusammen:
+
+- **Augen:** offen / halb / zu, Pupillen folgen dem Blick
+- **Mund:** zu / halb offen / offen / „O“ / Lächeln / traurig
+- **Brauen:** heben und senken sich (wenn der Skin Brauen hat)
+- **Emotionen:** fröhlich, traurig, wütend, überrascht – automatisch erkannt oder per Knopf festgehalten
+
+Augen, Brauen und Mund werden automatisch erkannt (auch mehrzeilige „Anime-Augen“ und Gesichtsteile
+auf der Hut-Ebene). Liegt die Erkennung daneben: Merkmal wählen und im Raster ein neues Rechteck ziehen.
+Schwellwerte für Augen und Mund sind einstellbar. Ohne Häkchen bei „Augen und Mund bewegen“ bleibt das
+Gesicht statisch und nur der Kopf bewegt sich.
+
+### Debug-Modus (F12)
+
+| Bereich | Funktion |
+|---|---|
+| Teile & Rollen | Baum aller Teile und Würfel; Klick in der 3D-Ansicht wählt das Teil (Strg = mehrere, Alt = einzelner Würfel), Klick aufs Gesicht wählt Auge/Pupille/Braue/Mund. Ein-/Ausblenden, Solo, Drahtgitter, Drehpunkte. |
+| Rollen | Jedem Teil eine Rolle geben (Kopf, Augen, Pupillen, Brauen, Mund, Lippen, Nase, Ohren, Schwanz, Haare, Flügel, Zubehör oder eigene). Vorschläge der Auto-Erkennung (anhand von Namen wie `LeftEar`, `tail`) müssen bestätigt werden. |
+| Treiber | Pro Rolle beliebig viele: Rotation, Position, Skalierung, Sichtbarkeit, UV-Verschiebung, Bildwechsel, Kopf-Tracking, Mund-Logik, Physik (ab M4). Einstellbar: Signal (Blendshape, Kopfwinkel, Blick …), Achse, Eingangs-/Ausgangsbereich, Invertieren, Empfindlichkeit, Glättung, Schwellwerte. Live-Anzeige der Werte. |
+| Simulator | Regler für alle Signale. Quelle **Webcam**, **Manuell** oder **Gemischt** (bewegte Regler überschreiben ihren Kanal). |
+| Log | Warnungen und Fehler mit Uhrzeit. |
+
+Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
+(`%APPDATA%\minecraft-vtuber\avatars\`), die Skin-/Avatar-Dateien selbst werden nie verändert.
+
 ## Bekannte Einschränkungen
 
 - Halbtransparente Pixel der zweiten Ebene werden als „ganz sichtbar“ oder „ganz unsichtbar“
@@ -98,7 +131,12 @@ Das Kamerabild verlässt den PC nicht.
   als Classic erkannt.
 - Viele Webcams können nur von einem Programm gleichzeitig genutzt werden. Wenn OBS die Kamera schon
   verwendet, entweder in OBS die Kamera-Quelle deaktivieren oder die Kamera nur hier nutzen.
-- Augen, Mund und Mimik bewegen sich noch nicht (Meilenstein M3).
+- Die Gesichtserkennung ist eine Heuristik auf 8 × 8 Pixeln. Wimpern und Brauen direkt über dem Auge
+  sind dabei nicht immer eindeutig – im Zweifel im Raster korrigieren.
+- Die automatisch erzeugten Mund- und Augenvarianten sind bewusst schlicht; eigene Varianten
+  zeichnen kommt mit dem Face-Editor (M6).
+- Ob MediaPipe „links“ aus Sicht der Person oder des Bildes meldet, kann je nach Version variieren –
+  dafür gibt es „Links/Rechts der Mimik vertauschen“.
 
 ## Datenschutz und Sicherheit
 

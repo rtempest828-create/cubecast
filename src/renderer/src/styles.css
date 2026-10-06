@@ -440,6 +440,410 @@ input[type='range'] {
   gap: 3px;
 }
 
+/* ---------- Gesicht ---------- */
+.pixel-canvas {
+  image-rendering: pixelated;
+}
+
+.face-preview-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.face-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 4px;
+}
+
+.feature-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--bg-input);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: #2b3341;
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.face-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: 100%;
+  max-width: 288px;
+  aspect-ratio: 1;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.face-cell {
+  outline: 1px solid rgb(0 0 0 / 0.15);
+}
+
+.face-rect {
+  position: absolute;
+  border: 2px solid;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.face-rect.active {
+  border-width: 3px;
+  opacity: 1;
+}
+
+/* ---------- Debug-Modus ---------- */
+.app.debug {
+  grid-template-columns: 200px 360px 1fr 420px;
+}
+
+.debug-toggle {
+  margin-top: auto;
+}
+
+.debug-drawer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+}
+
+.debug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 6px;
+}
+
+.debug-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.debug-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  margin: 10px 14px 0;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-input);
+}
+
+.segmented button {
+  flex: 1;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.segmented button.active {
+  background: #2b3341;
+  color: var(--text);
+}
+
+.simulator .segmented {
+  margin: 0;
+}
+
+.debug-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px 14px 24px;
+  overflow-y: auto;
+}
+
+.button.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.part-tree {
+  max-height: 40vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  font-size: 13px;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 24px;
+  padding-right: 6px;
+}
+
+.tree-row.selected {
+  background: #253042;
+}
+
+.tree-row.cube {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tree-toggle,
+.tree-eye,
+.tree-name {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.tree-toggle {
+  width: 16px;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+.tree-eye {
+  width: 18px;
+  padding: 0;
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.tree-eye.off {
+  color: var(--text-muted);
+}
+
+.tree-name {
+  flex: 1;
+  overflow: hidden;
+  padding: 2px 4px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #234029;
+  color: var(--accent-strong);
+  font-size: 11px;
+}
+
+.role-badge.suggested {
+  border: 1px dashed var(--accent);
+  background: transparent;
+}
+
+.role-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editor-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.field.compact {
+  flex: none;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+input[type='number'] {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+}
+
+.role-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 1px dashed var(--accent);
+  border-radius: 6px;
+}
+
+.driver-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+}
+
+.driver-head {
+  display: flex;
+  gap: 8px;
+}
+
+.driver-live {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.simulator {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-row {
+  display: grid;
+  grid-template-columns: 128px 1fr 40px 20px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.sim-name {
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim-row.overridden .sim-name {
+  color: var(--accent-strong);
+}
+
+.sim-slider {
+  position: relative;
+}
+
+.sim-live {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 6px;
+  background: #ffd166;
+  pointer-events: none;
+}
+
+.sim-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-release {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.sim-release:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.log-view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.log-view .button {
+  align-self: flex-start;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 62px 70px 1fr;
+  gap: 6px;
+  padding: 4px 6px;
+  border-left: 3px solid var(--border-strong);
+  background: var(--bg-card);
+  user-select: text;
+}
+
+.log-entry.warn {
+  border-left-color: #ffb74d;
+}
+
+.log-entry.error {
+  border-left-color: var(--danger);
+}
+
+.log-time,
+.log-source {
+  color: var(--text-muted);
+}
+
+.debug-hud {
+  position: absolute;
+  left: 12px;
+  bottom: 48px;
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.55);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud-row span:first-child {
+  color: var(--text-muted);
+}
+
 /* ---------- 3D-Ansicht ---------- */
 .viewport {
   position: relative;

@@ -3,6 +3,7 @@ import { basename } from 'node:path'
 import { BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { t } from '../shared/i18n'
 import { IPC, MAX_SKIN_FILE_BYTES, type OpenFileResult, type SkinDownloadResult } from '../shared/ipc'
+import type { AvatarStore } from './avatar-store'
 import { downloadSkinByName } from './skin-download'
 
 /** Nur Anfragen aus unseren eigenen Fenstern beantworten. */
@@ -26,7 +27,17 @@ function isTrustedSender(event: IpcMainInvokeEvent, appUrl: string): boolean {
   return isTrustedUrl(event.senderFrame?.url ?? '', appUrl)
 }
 
-export function registerIpcHandlers(appUrl: string): void {
+export function registerIpcHandlers(appUrl: string, avatarStore: AvatarStore): void {
+  ipcMain.handle(IPC.avatarConfigLoad, async (event, key: unknown): Promise<unknown> => {
+    if (!isTrustedSender(event, appUrl)) return null
+    return avatarStore.load(key)
+  })
+
+  ipcMain.handle(IPC.avatarConfigSave, async (event, key: unknown, data: unknown): Promise<boolean> => {
+    if (!isTrustedSender(event, appUrl)) return false
+    return avatarStore.save(key, data)
+  })
+
   ipcMain.handle(IPC.skinDownloadByName, async (event, name: unknown): Promise<SkinDownloadResult> => {
     if (!isTrustedSender(event, appUrl) || typeof name !== 'string') return { ok: false, error: 'invalid-name' }
     return downloadSkinByName(name)

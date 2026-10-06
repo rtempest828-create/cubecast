@@ -7,7 +7,9 @@ import type { SkinModelType } from '../core/skin/skin'
 
 export const IPC = {
   skinDownloadByName: 'skin:download-by-name',
-  skinOpenFile: 'skin:open-file'
+  skinOpenFile: 'skin:open-file',
+  avatarConfigLoad: 'avatar-config:load',
+  avatarConfigSave: 'avatar-config:save'
 } as const
 
 export type SkinDownloadError =
@@ -36,6 +38,11 @@ export interface VtuberApi {
     downloadByName(name: string): Promise<SkinDownloadResult>
     /** Öffnet einen Dateidialog für PNG-Dateien. */
     openFile(): Promise<OpenFileResult>
+  }
+  /** Einstellungen pro Avatar (Rollen-Zuordnung usw.), gespeichert als JSON im Benutzerordner. */
+  readonly avatarConfig: {
+    load(key: string): Promise<unknown>
+    save(key: string, data: unknown): Promise<boolean>
   }
 }
 

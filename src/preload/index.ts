@@ -6,6 +6,10 @@ const api: VtuberApi = {
   skin: {
     downloadByName: (name) => ipcRenderer.invoke(IPC.skinDownloadByName, name),
     openFile: () => ipcRenderer.invoke(IPC.skinOpenFile)
+  },
+  avatarConfig: {
+    load: (key) => ipcRenderer.invoke(IPC.avatarConfigLoad, key),
+    save: (key, data) => ipcRenderer.invoke(IPC.avatarConfigSave, key, data)
   }
 }
 

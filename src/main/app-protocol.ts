@@ -29,7 +29,8 @@ export function serveAppProtocol(rootDir: string): void {
     if (!target) return new Response('Verboten', { status: 403 })
     try {
       const data = await readFile(target)
-      return new Response(new Uint8Array(data), { headers: { 'content-type': mimeTypeFor(target) } })
+      // no-cache: nach einem Update nie veraltete Dateien aus dem Zwischenspeicher zeigen.
+      return new Response(new Uint8Array(data), { headers: { 'content-type': mimeTypeFor(target), 'cache-control': 'no-cache' } })
     } catch {
       return new Response('Nicht gefunden', { status: 404 })
     }

@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, session } from 'electron'
 import { t } from '../shared/i18n'
 import { APP_ENTRY_URL, registerAppScheme, serveAppProtocol } from './app-protocol'
+import { AvatarStore } from './avatar-store'
 import { registerIpcHandlers } from './ipc'
 import { installNetworkGuard } from './network-guard'
 
@@ -45,7 +46,7 @@ app.on('web-contents-created', (_event, contents) => {
 app.whenReady().then(() => {
   if (!devServerUrl) serveAppProtocol(join(__dirname, '../renderer'))
   installNetworkGuard(session.defaultSession, devServerUrl)
-  registerIpcHandlers(appUrl)
+  registerIpcHandlers(appUrl, new AvatarStore(join(app.getPath('userData'), 'avatars')))
   createMainWindow()
 
   app.on('activate', () => {

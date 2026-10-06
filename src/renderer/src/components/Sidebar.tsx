@@ -1,6 +1,7 @@
 import type { JSX } from 'preact'
 import { t, type MessageKey } from '@shared/i18n'
 import { activeTab, type TabId } from '../state/app-state'
+import { debugMode } from '../state/debug-state'
 
 /** Einfache Strich-Icons (24×24, Farbe über `currentColor`). */
 const ICONS: Readonly<Record<TabId, JSX.Element>> = {
@@ -67,6 +68,16 @@ export function Sidebar(): JSX.Element {
           </button>
         )
       })}
+      <button
+        type="button"
+        class={debugMode.value ? 'nav-item debug-toggle active' : 'nav-item debug-toggle'}
+        onClick={() => (debugMode.value = !debugMode.peek())}
+      >
+        <svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true">
+          <path d="M9 4h6M12 4v3M7.5 9.5h9v7a4.5 4.5 0 0 1-9 0v-7zM4 12h3.5M16.5 12H20M4 17h3.5M16.5 17H20" />
+        </svg>
+        <span>{t('debug.toggle')}</span>
+      </button>
     </nav>
   )
 }

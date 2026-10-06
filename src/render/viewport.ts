@@ -1,8 +1,10 @@
-import { AmbientLight, Color, DirectionalLight, PerspectiveCamera, Scene, WebGLRenderer } from 'three'
+import { AmbientLight, Color, DirectionalLight, PerspectiveCamera, Raycaster, Scene, Vector2, WebGLRenderer } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import type { CellRect } from '../core/face/face-layout'
+import type { RgbaImage } from '../core/image/rgba-image'
 import type { AvatarModel } from '../core/model/avatar-model'
 import type { Pose } from '../core/pipeline/pose'
-import { AvatarObject } from './avatar-object'
+import { AvatarObject, type DebugDisplayOptions, type PickResult } from './avatar-object'
 
 export const EDITOR_BACKGROUND = '#1a1d24'
 
@@ -21,7 +23,18 @@ export class Viewport {
   private readonly resizeObserver: ResizeObserver
   private avatar: AvatarObject | null = null
   private outerLayerVisible = true
+  private debugHidden: ReadonlySet<string> = new Set()
+  private debugSolo: ReadonlySet<string> = new Set()
+  private highlight: { parts: ReadonlySet<string>; cubes: ReadonlySet<string>; faceRects: readonly CellRect[] } = {
+    parts: new Set(),
+    cubes: new Set(),
+    faceRects: []
+  }
+  private debugOptions: DebugDisplayOptions = { wireframe: false, pivots: false }
+  private readonly raycaster = new Raycaster()
   private frameCallback: FrameCallback | null = null
+  /** Zählt Avatar-Wechsel; wer Texturen setzt, erkennt daran einen Neuaufbau. */
+  avatarVersion = 0
   private lastRenderTime = 0
   /**
    * Obergrenze der Bildrate (0 = Bildschirmfrequenz). Spart GPU-Leistung für Spiele,
@@ -66,10 +79,43 @@ export class Viewport {
   setAvatar(model: AvatarModel | null): void {
     this.avatar?.dispose()
     this.avatar = null
+    this.avatarVersion++
     if (!model) return
     this.avatar = new AvatarObject(model)
     this.avatar.setOriginVisible('vanilla-layer', this.outerLayerVisible)
+    this.avatar.setDebugVisibility(this.debugHidden, this.debugSolo)
+    this.avatar.setHighlight(this.highlight.parts, this.highlight.cubes, this.highlight.faceRects)
+    this.avatar.setDebugOptions(this.debugOptions)
     this.scene.add(this.avatar.root)
+  }
+
+  updateTexture(id: string, image: RgbaImage): void {
+    this.avatar?.updateTexture(id, image)
+  }
+
+  setDebugVisibility(hidden: ReadonlySet<string>, solo: ReadonlySet<string>): void {
+    this.debugHidden = hidden
+    this.debugSolo = solo
+    this.avatar?.setDebugVisibility(hidden, solo)
+  }
+
+  setHighlight(parts: ReadonlySet<string>, cubes: ReadonlySet<string>, faceRects: readonly CellRect[]): void {
+    this.highlight = { parts, cubes, faceRects }
+    this.avatar?.setHighlight(parts, cubes, faceRects)
+  }
+
+  setDebugOptions(options: DebugDisplayOptions): void {
+    this.debugOptions = options
+    this.avatar?.setDebugOptions(options)
+  }
+
+  /** Teil unter einer Bildschirmposition (Client-Koordinaten der Maus). */
+  pick(clientX: number, clientY: number): PickResult | null {
+    if (!this.avatar) return null
+    const rect = this.canvas.getBoundingClientRect()
+    const ndc = new Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1)
+    this.raycaster.setFromCamera(ndc, this.camera)
+    return this.avatar.pick(this.raycaster)
   }
 
   setFrameCallback(callback: FrameCallback | null): void {
