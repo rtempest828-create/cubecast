@@ -3,6 +3,7 @@ import { applyEmotion, detectEmotion, type Emotion } from '@core/face/emotions'
 import { composeFace, faceStateFromPose, faceStateKey, roundFaceState } from '@core/face/face-compose'
 import { FACE_TEXTURE_ID, SKIN_TEXTURE_ID } from '@core/model/vanilla-avatar'
 import { evaluateTriggers, type TriggerMemory } from '@core/animation/player'
+import { applyLuaPoses } from '@core/lua/apply-lua'
 import { PhysicsSystem } from '@core/physics/physics'
 import { applyBody } from '@core/pipeline/body'
 import { PoseBuilder, type PartPose } from '@core/pipeline/pose'
@@ -19,6 +20,8 @@ import { debugMode, driverValues, liveSignals, manualSignals, overriddenSignals,
 import { currentEmotion, currentFaceState, faceLayout, faceSource, faceVariants, manualEmotion, rig } from '../state/rig-state'
 import { trackingClient, trackingDebug, trackingSettings } from '../state/tracking-state'
 import { animationClips, animationPlayer, publishAnimationStatus, settingsOf } from '../state/animation-state'
+import { runTimeline, stepLua } from '../state/lua-state'
+import { vanillaOverride } from '../state/app-state'
 
 /**
  * Laufzeit pro Frame:
@@ -26,7 +29,7 @@ import { animationClips, animationPlayer, publishAnimationStatus, settingsOf } f
  *   → Simulator (Webcam/Manuell/Gemischt) → Rollen-Treiber → Pose
  *   → Körper (Leerlauf, Mitbewegung, Arm-Tracking) → Physik
  *   → Gesichtszustand + Emotion → Gesichts-Textur → 3D-Ansicht
- * Ab M5c kommt Lua dazu (vor den Animationen).
+ * Reihenfolge: Tracking → Rollen → Körper → Lua → Animationen → Physik → Gesicht.
  */
 export const headTracker = new HeadTracker(trackingSettings.peek())
 effect(() => headTracker.setSettings(trackingSettings.value))
@@ -104,11 +107,15 @@ export function attachRuntime(viewport: Viewport): () => void {
     }
     const arms = armTracker.update(armTargets, nowMs / 1000, dt)
     applyBody(builder, model, currentRig, body, { timeSec: nowMs / 1000, signals, arms })
-    // Blockbench-Animationen (nach dem Körper, vor der Physik – Ohren und Schweif reagieren darauf)
+    // Lua-Skripte (TICK/RENDER) des Figura-Avatars
+    const luaPoses = stepLua(dt, signals, nowMs)
+    if (luaPoses.length > 0) applyLuaPoses(builder, luaPoses, { ignoreVanillaVisibility: vanillaOverride.peek() !== null })
+    // Blockbench-Animationen (nach Lua, vor der Physik – Ohren und Schweif reagieren darauf)
     const clips = animationClips.peek()
     if (clips.length > 0) {
       evaluateTriggers(animationPlayer, clips, settingsOf, signals, triggerMemory)
-      animationPlayer.update(dt, clips, settingsOf)
+      const fired = animationPlayer.update(dt, clips, settingsOf)
+      if (fired.length > 0) runTimeline(fired.map((f) => f.script))
       animationPlayer.apply(builder, clips, settingsOf, nowMs / 1000)
     }
     physics.step(model, currentRig, builder, dt, nowMs / 1000, { enabled: body.physicsEnabled, strength: body.physicsStrength })

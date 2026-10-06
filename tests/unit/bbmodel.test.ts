@@ -214,7 +214,6 @@ describe('loadFiguraAvatar', () => {
     expect(avatar.models[0]!.warnings.some((w) => w.includes('fell.png'))).toBe(false)
     expect(avatar.hiddenVanilla.size).toBe(12)
     expect(avatar.warnings.some((w) => w.includes('kaputt.bbmodel'))).toBe(true)
-    expect(avatar.warnings.some((w) => w.includes('M5c'))).toBe(true)
   })
 
   it('nimmt den Ordnernamen, wenn avatar.json fehlt', async () => {

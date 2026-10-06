@@ -29,9 +29,13 @@ import { createPixelTexture } from './pixel-texture'
 
 /** Setzt/entfernt `id` in `set`; true, wenn sich etwas geändert hat. */
 function toggle(set: Set<string>, id: string, wanted: boolean): boolean {
-  if (set.has(id) === wanted) return false
-  if (wanted) set.add(id)
-  else set.delete(id)
+  return toggleMember(set, id, wanted)
+}
+
+function toggleMember<T>(set: Set<T>, item: T, wanted: boolean): boolean {
+  if (set.has(item) === wanted) return false
+  if (wanted) set.add(item)
+  else set.delete(item)
   return true
 }
 
@@ -108,6 +112,11 @@ export class AvatarObject {
   private solo: ReadonlySet<string> = new Set()
   private readonly poseHidden = new Set<string>()
   private readonly poseShown = new Set<string>()
+  /** Würfel/Meshes nach Element-ID (ohne „#n“ der Textur-Aufteilung) – für Lua-Posen einzelner Würfel. */
+  private readonly elements = new Map<string, MeshRecord[]>()
+  private readonly elementHidden = new Set<MeshRecord>()
+  private readonly elementShown = new Set<MeshRecord>()
+  private readonly posedElements = new Set<string>()
 
   private highlightObjects: Object3D[] = []
   private pivotHelpers: Object3D[] = []
@@ -138,10 +147,29 @@ export class AvatarObject {
     for (const id of this.posedParts) if (!pose.has(id)) this.resetPart(id)
     this.posedParts.clear()
     let visibilityChanged = false
+    for (const id of this.posedElements) {
+      if (pose.has(id)) continue
+      for (const mesh of this.elements.get(id) ?? []) {
+        if (this.elementHidden.delete(mesh) || this.elementShown.delete(mesh)) visibilityChanged = true
+        this.setUvOffset(mesh, [0, 0])
+      }
+    }
+    this.posedElements.clear()
 
     for (const [id, partPose] of pose) {
       const record = this.parts.get(id)
-      if (!record) continue
+      if (!record) {
+        // Einzelner Würfel (z. B. per Lua ausgeblendet): nur Sichtbarkeit und UV.
+        const meshes = this.elements.get(id)
+        if (!meshes) continue
+        for (const mesh of meshes) {
+          if (toggleMember(this.elementHidden, mesh, !partPose.visible)) visibilityChanged = true
+          if (toggleMember(this.elementShown, mesh, partPose.shown)) visibilityChanged = true
+          this.setUvOffset(mesh, partPose.uvOffset)
+        }
+        this.posedElements.add(id)
+        continue
+      }
       const { group, restPosition, restRotation } = record
       group.rotation.set(
         restRotation.x + MathUtils.degToRad(partPose.rotation[0]),
@@ -213,7 +241,10 @@ export class AvatarObject {
         if (!this.ownVisible(r)) visible = false
         if (this.solo.has(r.node.id)) inSolo = true
       }
-      for (const mesh of record.meshes) mesh.mesh.visible = visible && inSolo && mesh.elementVisible
+      for (const mesh of record.meshes) {
+        const own = (mesh.elementVisible || this.elementShown.has(mesh)) && !this.elementHidden.has(mesh)
+        mesh.mesh.visible = visible && inSolo && own
+      }
     }
   }
 
@@ -398,6 +429,10 @@ export class AvatarObject {
       }
       record.meshes.push(meshRecord)
       this.meshes.push(meshRecord)
+      const base = element.id.replace(/#\d+$/, '')
+      const list = this.elements.get(base)
+      if (list) list.push(meshRecord)
+      else this.elements.set(base, [meshRecord])
     }
     for (const cube of node.cubes) addElement(cube, cube.layer, cube, (w, h) => buildCubeGeometry(cube, node.pivot, w, h))
     // Polygonnetze können offen sein und nach innen zeigen – daher wie Cutout beidseitig.

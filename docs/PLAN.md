@@ -67,6 +67,7 @@ Nach jedem Meilenstein: Tests, manueller Testplan in `docs/`, Startanleitung, Co
 
 - **Voll:** Geometrie inkl. Meshes, Parent-Types, Blockbench-Animationen, `animations`, ModelPart-Transformationen,
   `vanilla_model`, Basis-Events, `keybinds`, `action_wheel`, `vec`/`matrices`, `config`, Pings (lokal), eigene Sounds.
+- Details zum tatsächlichen Stand: [COMPATIBILITY.md](COMPATIBILITY.md).
 - **Teilweise:** Lua-Dialekt-Unterschiede (5.2 vs. 5.4), Keyframe-Ausdrücke (Figura wertet sie als Lua aus),
   `player`/`world`/`host` nur als Attrappen (z. B. JimmyAnims zeigt standardmäßig Idle), Render-Types außer
   EMISSIVE/TRANSLUCENT nur angenähert, Text-Tasks mit Ersatzschrift, Instruktionslimits vereinfacht.

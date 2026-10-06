@@ -68,6 +68,8 @@ export interface AvatarRig {
   readonly vanillaHidden?: readonly VanillaId[] | null
   /** Einstellungen pro Blockbench-Animation (Autostart, Tempo, Auslöser …). */
   readonly animations?: Readonly<Record<string, AnimationSettings>>
+  /** Lua-Skripte des Figura-Avatars ausführen (Standard: ja). */
+  readonly luaEnabled?: boolean
 }
 
 /** Zuordnungen von Zubehör-Teilen bleiben erhalten, auch wenn das Zubehör gerade aus ist. */
@@ -288,7 +290,8 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
       },
       cosmetics: parseCosmetics(value['cosmetics']),
       ...(Array.isArray(value['vanillaHidden']) ? { vanillaHidden: parseVanillaHidden(value['vanillaHidden']) } : {}),
-      ...(isRecord(value['animations']) ? { animations: parseAnimationSettings(value['animations']) } : {})
+      ...(isRecord(value['animations']) ? { animations: parseAnimationSettings(value['animations']) } : {}),
+      ...(typeof value['luaEnabled'] === 'boolean' ? { luaEnabled: value['luaEnabled'] } : {})
     },
     warnings
   }

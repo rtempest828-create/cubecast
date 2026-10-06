@@ -10,6 +10,7 @@ import { FacePanel } from './panels/FacePanel'
 import { ModelPanel } from './panels/ModelPanel'
 import { PhysicsPanel } from './panels/PhysicsPanel'
 import { PlaceholderPanel } from './panels/PlaceholderPanel'
+import { ScriptPanel } from './panels/ScriptPanel'
 import { TrackingPanel } from './panels/TrackingPanel'
 import { activeTab, type TabId } from './state/app-state'
 import { clearSelection, debugMode } from './state/debug-state'
@@ -20,6 +21,7 @@ const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
   face: FacePanel,
   physics: PhysicsPanel,
   animations: AnimationPanel,
+  script: ScriptPanel,
   output: () => <PlaceholderPanel title="tab.output" milestone="M6" />,
   settings: () => <PlaceholderPanel title="tab.settings" milestone="M6" />
 }

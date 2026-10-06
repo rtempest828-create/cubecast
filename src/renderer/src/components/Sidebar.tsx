@@ -25,6 +25,7 @@ const ICONS: Readonly<Record<TabId, JSX.Element>> = {
       <path d="M10 9.5v5l4.5-2.5z" />
     </>
   ),
+  script: <path d="M8.5 7 4 12l4.5 5M15.5 7 20 12l-4.5 5M13.5 5l-3 14" />,
   output: (
     <>
       <rect x="3" y="4.5" width="18" height="12" rx="2" />
@@ -47,6 +48,7 @@ const TABS: readonly { readonly id: TabId; readonly label: MessageKey }[] = [
   { id: 'face', label: 'tab.face' },
   { id: 'physics', label: 'tab.physics' },
   { id: 'animations', label: 'tab.animations' },
+  { id: 'script', label: 'tab.script' },
   { id: 'output', label: 'tab.output' },
   { id: 'settings', label: 'tab.settings' }
 ]

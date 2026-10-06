@@ -8,7 +8,7 @@ import { normalizeSkin, type NormalizedSkin, type SkinModelType } from '@core/sk
 
 /** Zentraler UI-Zustand (Preact Signals). */
 
-export type TabId = 'model' | 'tracking' | 'face' | 'physics' | 'animations' | 'output' | 'settings'
+export type TabId = 'model' | 'tracking' | 'face' | 'physics' | 'animations' | 'script' | 'output' | 'settings'
 
 export type SkinSource =
   | { readonly kind: 'placeholder' }
@@ -56,10 +56,14 @@ export const loadedFigura = signal<LoadedFigura | null>(null)
 /** Eigene Auswahl ausgeblendeter Vanilla-Teile; null = wie im Figura-Skript. Wird mit der Zuordnung gespeichert. */
 export const vanillaOverride = signal<readonly VanillaId[] | null>(null)
 
+/** Läuft das Lua-Skript, bestimmt es die Vanilla-Sichtbarkeit selbst (statt der Text-Suche). */
+export const luaControlsVanilla = signal(false)
+
 export const vanillaHidden = computed<ReadonlySet<VanillaId>>(() => {
   const figura = loadedFigura.value
   if (!figura) return new Set()
-  return new Set(vanillaOverride.value ?? figura.avatar.hiddenVanilla)
+  if (vanillaOverride.value) return new Set(vanillaOverride.value)
+  return luaControlsVanilla.value ? new Set() : new Set(figura.avatar.hiddenVanilla)
 })
 
 export const avatarModel = computed(() =>

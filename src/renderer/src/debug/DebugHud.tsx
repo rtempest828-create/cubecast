@@ -2,6 +2,7 @@ import type { JSX } from 'preact'
 import { t } from '@shared/i18n'
 import { armTrackingActive, physicsPartCount } from '../runtime/runtime'
 import { animationClips, animationStatus } from '../state/animation-state'
+import { luaStats, luaStatus } from '../state/lua-state'
 import { logEntries, signalMode } from '../state/debug-state'
 import { currentEmotion } from '../state/rig-state'
 import { trackingClient, trackingDebug } from '../state/tracking-state'
@@ -26,7 +27,12 @@ export function DebugHud(): JSX.Element {
         ? t('hud.animations.none')
         : t('hud.animations.active', { active: [...animationStatus.value.values()].filter((s) => s.state === 'playing').length, total: animationClips.value.length })
     ],
-    [t('hud.lua'), t('hud.lua.none')],
+    [
+      t('hud.lua'),
+      luaStatus.value.kind === 'running'
+        ? t('hud.lua.running', { tick: Math.round((luaStats.value?.tickInstructions ?? 0) / 1000), render: Math.round((luaStats.value?.renderInstructions ?? 0) / 1000) })
+        : t(`hud.lua.${luaStatus.value.kind}`)
+    ],
     [t('hud.warnings'), String(warnings)]
   ]
   return (

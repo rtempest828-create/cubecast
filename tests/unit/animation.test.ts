@@ -161,7 +161,8 @@ describe('parseAnimations', () => {
     expect(clip.id).toBe('model.winken')
     expect(clip.loop).toBe('loop')
     expect(clip.length).toBe(2) // letzter Keyframe liegt hinter „length“
-    expect(clip.effectCount).toBe(1)
+    expect(clip.effectCount).toBe(0)
+    expect(clip.timeline).toEqual([{ time: 0, script: 'print(1)' }])
     expect(clip.tracks.map((t) => `${t.partId}:${t.channel}`)).toEqual([
       'figura.model.RightArm:rotation',
       'figura.model.RightArm:position',
@@ -197,6 +198,7 @@ function simpleClip(extra: Partial<AnimationClip> = {}): AnimationClip {
     loopDelay: 0,
     blend: 1,
     tracks: [track(kf(0, 0), kf(1, 10))],
+    timeline: [],
     effectCount: 0,
     ...extra
   }
@@ -334,6 +336,6 @@ describe('Figura-Avatar mit Animationen', () => {
     const avatar = await loadFiguraAvatar('A', [{ path: 'model.bbmodel', data: new TextEncoder().encode(JSON.stringify(model)) }])
     expect(avatar.animations.map((a) => a.id)).toEqual(['model.winken'])
     expect(avatar.animations[0]!.tracks[0]!.partId).toBe('figura.model.RightArm')
-    expect(avatar.warnings.some((w) => w.includes('Timeline'))).toBe(true)
+    expect(avatar.animations[0]!.timeline).toHaveLength(1)
   })
 })

@@ -23,8 +23,10 @@ export interface FiguraAvatar {
   readonly models: readonly ParsedBbmodel[]
   /** Blockbench-Animationen aller Modelle (IDs wie Figuras `animations.<modell>.<name>`). */
   readonly animations: readonly AnimationClip[]
-  /** Lua-Skripte (werden ab M5c ausgeführt). */
+  /** Lua-Skripte. */
   readonly scripts: readonly FiguraScript[]
+  /** Skripte, die beim Start laufen (`autoScripts` aus avatar.json) oder null = alle. */
+  readonly autoScripts: readonly string[] | null
   /** Vanilla-Teile, die die Skripte ausblenden (vorläufige Erkennung bis M5c). */
   readonly hiddenVanilla: ReadonlySet<VanillaId>
   readonly warnings: readonly string[]
@@ -127,9 +129,8 @@ export async function loadFiguraAvatar(folderName: string, files: readonly Figur
   }
 
   const scripts = files.filter((f) => /\.lua$/i.test(f.path)).map((f) => ({ path: f.path, source: text(f.data) }))
-  if (scripts.length > 0) warnings.push(`${scripts.length} Lua-Skript(e) gefunden – sie werden ab Meilenstein M5c ausgeführt. Bis dahin steuern Rollen und Tracking den Avatar.`)
   const effects = animations.reduce((sum, clip) => sum + clip.effectCount, 0)
-  if (effects > 0) warnings.push(`${effects} Timeline-/Sound-/Partikel-Keyframes in Animationen – Timeline-Skripte laufen ab Meilenstein M5c, Sounds und Partikel werden nicht abgespielt.`)
+  if (effects > 0) warnings.push(`${effects} Sound-/Partikel-Keyframes in Animationen werden nicht abgespielt.`)
 
   const str = (key: string): string => (typeof meta[key] === 'string' ? (meta[key] as string) : '')
   return {
@@ -140,6 +141,7 @@ export async function loadFiguraAvatar(folderName: string, files: readonly Figur
     models,
     animations,
     scripts,
+    autoScripts: Array.isArray(meta['autoScripts']) ? meta['autoScripts'].filter((a): a is string => typeof a === 'string') : null,
     hiddenVanilla: scanHiddenVanilla(scripts.map((s) => s.source)),
     warnings
   }

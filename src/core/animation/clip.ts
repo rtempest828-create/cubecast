@@ -36,6 +36,11 @@ export interface Track {
   readonly keyframes: readonly Keyframe[]
 }
 
+export interface TimelineEntry {
+  readonly time: number
+  readonly script: string
+}
+
 export interface AnimationClip {
   /** Eindeutig im Avatar, z. B. „model.winken“ (wie Figuras `animations.model.winken`). */
   readonly id: string
@@ -51,7 +56,9 @@ export interface AnimationClip {
   /** Stärke aus Blockbench („Blend Weight“), Standard 1. */
   readonly blend: number
   readonly tracks: readonly Track[]
-  /** Anzahl der Timeline-Skripte, Sounds und Partikel (laufen erst mit Lua, M5c). */
+  /** Timeline-Skripte (Lua-Code an Zeitpunkten der Animation). */
+  readonly timeline: readonly TimelineEntry[]
+  /** Anzahl der Sound- und Partikel-Keyframes (werden nicht abgespielt). */
   readonly effectCount: number
 }
 
@@ -140,13 +147,22 @@ export function parseAnimations(raw: readonly unknown[], options: ParseAnimation
     const tracks: Track[] = []
     const problems = new Set<string>()
     let effectCount = 0
+    const timeline: TimelineEntry[] = []
     let lastKey = 0
     const animators = isRecord(entry['animators']) ? entry['animators'] : {}
     for (const [key, value] of Object.entries(animators)) {
       if (!isRecord(value)) continue
       const keyframes = Array.isArray(value['keyframes']) ? value['keyframes'].filter(isRecord) : []
       if (value['type'] === 'effect' || key === 'effects') {
-        effectCount += keyframes.length
+        for (const k of keyframes) {
+          const point = Array.isArray(k['data_points']) && isRecord(k['data_points'][0]) ? k['data_points'][0] : {}
+          const time = finite(k['time'], Number.NaN)
+          if (k['channel'] === 'timeline' && typeof point['script'] === 'string' && point['script'].trim() && Number.isFinite(time)) {
+            timeline.push({ time: Math.max(0, time), script: point['script'] })
+          } else if (k['channel'] !== 'timeline') {
+            effectCount++
+          }
+        }
         continue
       }
       const partId = options.partIdByUuid.get(key) ?? (typeof value['name'] === 'string' ? options.partIdByName.get(value['name']) : undefined)
@@ -182,6 +198,7 @@ export function parseAnimations(raw: readonly unknown[], options: ParseAnimation
         return b === undefined || b === '' ? 1 : finite(b, 1)
       })(),
       tracks,
+      timeline: timeline.sort((a, b) => a.time - b.time),
       effectCount
     })
   }
