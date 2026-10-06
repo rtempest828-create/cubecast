@@ -506,6 +506,30 @@ input[type='range'] {
   opacity: 1;
 }
 
+/* ---------- Körper & Physik ---------- */
+.physics-part {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+}
+
+.physics-part-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.axis-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* ---------- Debug-Modus ---------- */
 .app.debug {
   grid-template-columns: 200px 360px 1fr 420px;

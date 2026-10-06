@@ -1,5 +1,6 @@
 import type { JSX } from 'preact'
 import { t } from '@shared/i18n'
+import { armTrackingActive, physicsPartCount } from '../runtime/runtime'
 import { logEntries, signalMode } from '../state/debug-state'
 import { currentEmotion } from '../state/rig-state'
 import { trackingClient, trackingDebug } from '../state/tracking-state'
@@ -16,6 +17,8 @@ export function DebugHud(): JSX.Element {
     [t('hud.source'), t(`debug.sim.${signalMode.value}`)],
     [t('hud.face'), debug.faceFound ? t('tracking.live.yes') : t('tracking.live.no')],
     [t('hud.emotion'), t(`emotion.${currentEmotion.value}`)],
+    [t('hud.physics'), t('hud.physics.parts', { count: physicsPartCount.value })],
+    [t('hud.arms'), armTrackingActive.value ? t('hud.arms.tracked') : t('hud.arms.idle')],
     [t('hud.animations'), t('hud.animations.none')],
     [t('hud.lua'), t('hud.lua.none')],
     [t('hud.warnings'), String(warnings)]

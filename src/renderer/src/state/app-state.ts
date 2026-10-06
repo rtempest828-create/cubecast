@@ -1,4 +1,5 @@
 import { computed, signal } from '@preact/signals'
+import { NO_COSMETICS, type CosmeticSettings } from '@core/model/cosmetics'
 import { buildVanillaAvatar } from '@core/model/vanilla-avatar'
 import { createPlaceholderSkin } from '@core/skin/placeholder-skin'
 import { normalizeSkin, type NormalizedSkin, type SkinModelType } from '@core/skin/skin'
@@ -37,7 +38,10 @@ export const autoModel = computed<SkinModelType>(() => loadedSkin.value.official
 
 export const effectiveModel = computed<SkinModelType>(() => (modelChoice.value === 'auto' ? autoModel.value : modelChoice.value))
 
-export const avatarModel = computed(() => buildVanillaAvatar(loadedSkin.value.skin, effectiveModel.value))
+/** Eingebautes Test-Zubehör; wird pro Avatar mit der Rollen-Zuordnung gespeichert (siehe rig-state). */
+export const cosmeticSettings = signal<CosmeticSettings>(NO_COSMETICS)
+
+export const avatarModel = computed(() => buildVanillaAvatar(loadedSkin.value.skin, effectiveModel.value, cosmeticSettings.value))
 
 // ---------------------------------------------------------------------------
 // Hinweise/Fehlermeldungen („Toasts“)

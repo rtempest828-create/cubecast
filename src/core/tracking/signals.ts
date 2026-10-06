@@ -19,6 +19,10 @@ export interface SignalInfo {
 }
 
 export const HEAD_SIGNALS = ['head.yaw', 'head.pitch', 'head.roll'] as const
+/** Kopfverschiebung in cm gegenüber der Neutralhaltung. */
+export const HEAD_POSITION_SIGNALS = ['head.x', 'head.y', 'head.z'] as const
+/** Mikrofon-Lip-Sync (0…1). */
+export const AUDIO_SIGNALS = ['audio.level', 'audio.round'] as const
 
 /** Abgeleitete Signale; Bedeutung siehe `deriveSignals`. */
 export const DERIVED_SIGNALS = [
@@ -38,7 +42,9 @@ const SIGNED_DERIVED = new Set<string>(['gaze.x', 'gaze.y', 'brow.left', 'brow.r
 
 export const SIGNAL_CATALOG: readonly SignalInfo[] = [
   ...HEAD_SIGNALS.map((name) => ({ name, group: 'head' as const, min: -90, max: 90 })),
+  ...HEAD_POSITION_SIGNALS.map((name) => ({ name, group: 'head' as const, min: -30, max: 30 })),
   ...DERIVED_SIGNALS.map((name) => ({ name, group: 'derived' as const, min: SIGNED_DERIVED.has(name) ? -1 : 0, max: 1 })),
+  ...AUDIO_SIGNALS.map((name) => ({ name, group: 'derived' as const, min: 0, max: 1 })),
   ...BLENDSHAPE_NAMES.filter((name) => name !== '_neutral').map((name) => ({ name, group: 'blendshape' as const, min: 0, max: 1 }))
 ]
 
@@ -108,8 +114,12 @@ export function deriveSignals(b: Readonly<Record<string, number>>): Record<strin
   }
 }
 
-/** Fügt Blendshapes, Kopfwinkel und abgeleitete Signale zusammen. */
-export function buildSignals(blendshapes: Readonly<Record<string, number>> | null, head: HeadRotation): Record<string, number> {
+/** Fügt Blendshapes, Kopfwinkel, Kopfposition und abgeleitete Signale zusammen. */
+export function buildSignals(
+  blendshapes: Readonly<Record<string, number>> | null,
+  head: HeadRotation,
+  position: readonly [number, number, number] = [0, 0, 0]
+): Record<string, number> {
   const blend: Record<string, number> = {}
   for (const name of BLENDSHAPE_NAMES) blend[name] = blendshapes?.[name] ?? 0
   return {
@@ -117,6 +127,34 @@ export function buildSignals(blendshapes: Readonly<Record<string, number>> | nul
     'head.yaw': head.yaw,
     'head.pitch': head.pitch,
     'head.roll': head.roll,
+    'head.x': position[0],
+    'head.y': position[1],
+    'head.z': position[2],
+    'audio.level': 0,
+    'audio.round': 0,
     ...deriveSignals(blend)
+  }
+}
+
+export interface LipSyncValues {
+  /** Lautstärke 0…1 (nach Rauschsperre und Verstärkung). */
+  readonly level: number
+  /** Wie „rund“ der Vokal klingt (O/U) 0…1. */
+  readonly round: number
+}
+
+/**
+ * Ergänzt die Mundsignale um das Mikrofon: Der Mund öffnet sich mindestens so weit,
+ * wie es die Lautstärke vorgibt. So bewegt sich der Mund auch, wenn die Kamera ihn
+ * nicht gut sieht (z. B. Mikrofon davor).
+ */
+export function applyLipSync(signals: Signals, lip: LipSyncValues): Record<string, number> {
+  const open = Math.max(signals['mouth.open'] ?? 0, lip.level * 0.8)
+  return {
+    ...signals,
+    'audio.level': lip.level,
+    'audio.round': lip.round,
+    'mouth.open': open,
+    'mouth.round': Math.max(signals['mouth.round'] ?? 0, lip.round * lip.level)
   }
 }

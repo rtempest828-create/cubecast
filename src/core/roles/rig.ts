@@ -18,6 +18,7 @@ import {
 } from './drivers'
 import { defaultDriversForRole, isRoleId, suggestRole, type RoleId } from './roles'
 import { MOUTH_FRAMES } from '../face/face-variants'
+import { NO_COSMETICS, type CosmeticSettings } from '../model/cosmetics'
 
 /** Feste IDs der (virtuellen) Teile des Gesichts-Overlays. */
 export const FACE_PART_IDS = {
@@ -57,7 +58,12 @@ export interface AvatarRig {
   readonly version: 1
   readonly assignments: readonly RoleAssignment[]
   readonly face: FaceRigSettings
+  /** Eingebautes Test-Zubehör (Fuchsohren, Schwanz, Headset). */
+  readonly cosmetics: CosmeticSettings
 }
+
+/** Zuordnungen von Zubehör-Teilen bleiben erhalten, auch wenn das Zubehör gerade aus ist. */
+const isCosmeticId = (id: string): boolean => id.startsWith('cosmetic.')
 
 const VANILLA_ROLES: Readonly<Record<string, RoleId>> = {
   head: 'head',
@@ -114,6 +120,11 @@ export function defaultAssignmentFor(part: PartNode): RoleAssignment | null {
     return role ? { partId: part.id, role, confirmed: true, drivers: defaultDriversForRole(role) } : null
   }
   if (part.origin === 'face-overlay') return faceAssignment(part.id)
+  if (part.origin === 'cosmetic') {
+    // Eingebautes Zubehör: Rolle steht fest, daher gleich bestätigt.
+    const role = suggestRole(part.name)
+    return role ? { partId: part.id, role, confirmed: true, drivers: defaultDriversForRole(role) } : null
+  }
   if (part.origin === 'bbmodel') {
     const role = suggestRole(part.name)
     return role ? { partId: part.id, role, confirmed: false, drivers: defaultDriversForRole(role) } : null
@@ -127,7 +138,19 @@ export function createDefaultRig(model: AvatarModel): AvatarRig {
     const assignment = defaultAssignmentFor(part)
     if (assignment) assignments.push(assignment)
   })
-  return { version: 1, assignments, face: DEFAULT_FACE_SETTINGS }
+  return { version: 1, assignments, face: DEFAULT_FACE_SETTINGS, cosmetics: NO_COSMETICS }
+}
+
+/** Ergänzt Standard-Zuordnungen für Teile, die noch keine haben (z. B. neu eingeschaltetes Zubehör). */
+export function withDefaults(rig: AvatarRig, model: AvatarModel): AvatarRig {
+  const existing = new Set(rig.assignments.map((a) => a.partId))
+  const added: RoleAssignment[] = []
+  walkParts(model.root, (part) => {
+    if (existing.has(part.id)) return
+    const assignment = defaultAssignmentFor(part)
+    if (assignment) added.push(assignment)
+  })
+  return added.length === 0 ? rig : { ...rig, assignments: [...rig.assignments, ...added] }
 }
 
 /** Bestätigte Zuordnungen bleiben, Vorschläge werden neu berechnet, neue Teile ergänzt. */
@@ -182,6 +205,12 @@ function parseDriver(value: unknown): DriverConfig | null {
   }
 }
 
+/** Liest nur die Zubehör-Einstellungen (wird vor dem Modellaufbau gebraucht). */
+export function parseCosmetics(value: unknown): CosmeticSettings {
+  if (!isRecord(value)) return NO_COSMETICS
+  return { foxEars: value['foxEars'] === true, foxTail: value['foxTail'] === true, headset: value['headset'] === true }
+}
+
 function parseLayout(value: unknown): FaceLayout | null {
   if (!isRecord(value)) return null
   const rect = (key: string) => (isValidCellRect(value[key]) ? value[key] : null)
@@ -209,7 +238,7 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
       warnings.push('Ungültiger Eintrag in der Zuordnung übersprungen.')
       continue
     }
-    if (!partIds.has(entry['partId'])) {
+    if (!partIds.has(entry['partId']) && !isCosmeticId(entry['partId'])) {
       warnings.push(`Teil „${entry['partId']}“ gibt es in diesem Modell nicht – Zuordnung übersprungen.`)
       continue
     }
@@ -235,7 +264,8 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
         layout: parseLayout(face['layout']),
         swapSides: face['swapSides'] === true,
         autoEmotion: face['autoEmotion'] !== false
-      }
+      },
+      cosmetics: parseCosmetics(value['cosmetics'])
     },
     warnings
   }

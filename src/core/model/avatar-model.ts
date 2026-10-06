@@ -48,7 +48,7 @@ export interface CubeDef {
 }
 
 /** Herkunft eines Teils (für Baumansicht, Rollen-Vorschläge, Figura-APIs). */
-export type PartOrigin = 'root' | 'vanilla' | 'vanilla-layer' | 'bbmodel' | 'face-overlay'
+export type PartOrigin = 'root' | 'vanilla' | 'vanilla-layer' | 'bbmodel' | 'face-overlay' | 'cosmetic'
 
 export interface PartNode {
   readonly id: string

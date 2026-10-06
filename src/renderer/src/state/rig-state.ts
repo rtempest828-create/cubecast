@@ -6,8 +6,9 @@ import { extractFaceSource } from '@core/face/face-source'
 import { generateFaceVariants } from '@core/face/face-variants'
 import type { RgbaImage } from '@core/image/rgba-image'
 import { logger } from '@core/log/logger'
-import { createDefaultRig, parseRig, rerunAutoDetection, type AvatarRig, type FaceRigSettings } from '@core/roles/rig'
-import { avatarModel, loadedSkin } from './app-state'
+import type { CosmeticSettings } from '@core/model/cosmetics'
+import { createDefaultRig, parseCosmetics, parseRig, rerunAutoDetection, withDefaults, type AvatarRig, type FaceRigSettings } from '@core/roles/rig'
+import { avatarModel, cosmeticSettings, loadedSkin } from './app-state'
 
 /**
  * Rollen-Zuordnung und Gesichts-Overlay des aktuellen Avatars.
@@ -56,6 +57,8 @@ effect(() => {
     const key = await skinKey(skin.image)
     const stored = hasBridge() ? await window.vtuber.avatarConfig.load(key) : null
     if (token !== loadToken) return
+    // Zubehör zuerst setzen, damit das Modell (und damit die Teile) schon stimmt.
+    cosmeticSettings.value = parseCosmetics(typeof stored === 'object' && stored !== null ? (stored as Record<string, unknown>)['cosmetics'] : null)
     const { rig: parsed, warnings } = parseRig(stored, avatarModel.peek())
     for (const warning of warnings) logger.warn('Rollen', warning)
     rigWarnings.value = warnings
@@ -87,8 +90,23 @@ export function updateFaceSettings(patch: Partial<FaceRigSettings>): void {
 }
 
 export function resetRig(): void {
-  updateRig(createDefaultRig(avatarModel.peek()))
+  updateRig({ ...createDefaultRig(avatarModel.peek()), cosmetics: rig.peek().cosmetics })
 }
+
+/** Test-Zubehör ein-/ausschalten (Modell wird neu aufgebaut, Rollen ergänzt). */
+export function updateCosmetics(patch: Partial<CosmeticSettings>): void {
+  const next = { ...rig.peek().cosmetics, ...patch }
+  cosmeticSettings.value = next
+  updateRig(withDefaults({ ...rig.peek(), cosmetics: next }, avatarModel.peek()))
+}
+
+// Neue Teile im Modell (z. B. Zubehör) bekommen automatisch ihre Standard-Rolle.
+effect(() => {
+  const model = avatarModel.value
+  const current = rig.peek()
+  const next = withDefaults(current, model)
+  if (next !== current) rig.value = next
+})
 
 export function rerunRoleDetection(): void {
   updateRig(rerunAutoDetection(rig.peek(), avatarModel.peek()))

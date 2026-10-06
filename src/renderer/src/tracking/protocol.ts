@@ -10,6 +10,7 @@ export interface InitMessage {
   readonly wasmLoaderUrl: string
   readonly wasmBinaryUrl: string
   readonly modelUrl: string
+  readonly poseModelUrl: string
   readonly preferGpu: boolean
 }
 
@@ -21,10 +22,18 @@ export interface FrameMessage {
   readonly bitmap: ImageBitmap
 }
 
-export type ToWorkerMessage = InitMessage | FrameMessage
+/** Arm-Tracking (Pose Landmarker) ein-/ausschalten; das Modell wird erst bei Bedarf geladen. */
+export interface PoseMessage {
+  readonly type: 'set-pose'
+  readonly enabled: boolean
+}
+
+export type ToWorkerMessage = InitMessage | FrameMessage | PoseMessage
 
 export type FromWorkerMessage =
   | { readonly type: 'ready'; readonly delegate: TrackingDelegate }
   | { readonly type: 'init-error'; readonly message: string }
+  | { readonly type: 'pose-ready'; readonly delegate: TrackingDelegate }
+  | { readonly type: 'pose-error'; readonly message: string }
   | { readonly type: 'result'; readonly result: FaceTrackingResult }
   | { readonly type: 'frame-error'; readonly frameId: number; readonly message: string }

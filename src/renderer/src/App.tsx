@@ -7,6 +7,7 @@ import { ViewportView } from './components/ViewportView'
 import { DebugDrawer } from './debug/DebugDrawer'
 import { FacePanel } from './panels/FacePanel'
 import { ModelPanel } from './panels/ModelPanel'
+import { PhysicsPanel } from './panels/PhysicsPanel'
 import { PlaceholderPanel } from './panels/PlaceholderPanel'
 import { TrackingPanel } from './panels/TrackingPanel'
 import { activeTab, type TabId } from './state/app-state'
@@ -16,7 +17,7 @@ const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
   model: ModelPanel,
   tracking: TrackingPanel,
   face: FacePanel,
-  physics: () => <PlaceholderPanel title="tab.physics" milestone="M4" />,
+  physics: PhysicsPanel,
   output: () => <PlaceholderPanel title="tab.output" milestone="M6" />,
   settings: () => <PlaceholderPanel title="tab.settings" milestone="M6" />
 }

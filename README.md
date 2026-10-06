@@ -4,9 +4,9 @@ Windows-Desktop-App, die einen Minecraft-Skin (und später Figura-Avatare) als b
 darstellt und per Webcam-Face-Tracking steuert – zum Streamen mit OBS oder für Discord.
 Alles läuft lokal, ohne Konto und ohne Cloud.
 
-> **Stand: Meilenstein M3** – Skin laden, Kopf per Webcam steuern, Augen/Mund/Brauen/Emotionen,
-> Debug-Modus mit Rollen-Zuordnung und Tracking-Simulator. Physik, Figura-Import und
-> Streaming-Ausgabe folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
+> **Stand: Meilenstein M4** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
+> Körper-Mitbewegung und Leerlauf, Physik (mit Test-Zubehör), Arm-Tracking, Mikrofon-Lip-Sync.
+> Figura-Import und Streaming-Ausgabe folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
 
 ## Installation
 
@@ -108,6 +108,21 @@ auf der Hut-Ebene). Liegt die Erkennung daneben: Merkmal wählen und im Raster e
 Schwellwerte für Augen und Mund sind einstellbar. Ohne Häkchen bei „Augen und Mund bewegen“ bleibt das
 Gesicht statisch und nur der Kopf bewegt sich.
 
+### Körper & Physik
+
+| Bereich | Funktion |
+|---|---|
+| Körper | Oberkörper neigt sich mit deiner Kopfposition (zur Seite/nach vorne) um die Hüfte, Schultern drehen leicht mit. Dazu Atmen, leichtes Schwanken und Minecrafts Arm-Wippen im Leerlauf. Alles einzeln regelbar. |
+| Physik | Feder-/Pendel-Simulation für alle Teile mit der Rolle Ohr, Schwanz, Haare oder Flügel (Rollen im Debug-Modus vergeben). Pro Teil Stärke, Dämpfung und Achsen; Ketten (mehrgliedrige Schwänze) schwingen peitschenartig nach. |
+| Test-Zubehör | Eingebaute Fuchsohren, dreiteiliger Fuchsschwanz und ein blockiges Headset – zum Ausprobieren, bis Figura-Avatare importiert werden können. |
+| Arm-Tracking | Optional: MediaPipe Pose (im selben Hintergrund-Thread) – die Arme zeigen von der Schulter zum Handgelenk, auch beim Winken. Schultern und Hände müssen im Bild sein. Ohne erkannte Arme: weicher Übergang ins Arm-Wippen. |
+| Lip-Sync | Optional: Mikrofon ergänzt die Mundbewegung über die Lautstärke; dunkle Vokale (O/U) machen den Mund rund. Startet nur per Knopf, das Audio wird nur gemessen, nicht aufgezeichnet. |
+
+Zum **Hand-Tracking**: Minecraft-Arme haben keine Hände oder Finger, daher bringt ein eigenes
+Hand-Modell kaum sichtbaren Nutzen (aber zusätzliche Rechenlast). Winken und Armbewegungen kommen
+vollständig aus dem Körper-Modell. Falls später Figura-Avatare mit eigenen Händen/Fingern kommen,
+lässt es sich nachrüsten.
+
 ### Debug-Modus (F12)
 
 | Bereich | Funktion |
@@ -137,6 +152,8 @@ Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
   zeichnen kommt mit dem Face-Editor (M6).
 - Ob MediaPipe „links“ aus Sicht der Person oder des Bildes meldet, kann je nach Version variieren –
   dafür gibt es „Links/Rechts der Mimik vertauschen“.
+- Arm-Tracking zeigt nur die Richtung Schulter → Handgelenk; Minecraft-Arme können nicht abknicken.
+- Lip-Sync schätzt nur Lautstärke und „rund/offen“, keine einzelnen Laute.
 
 ## Datenschutz und Sicherheit
 

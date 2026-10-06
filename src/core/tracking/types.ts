@@ -11,6 +11,8 @@ export interface FaceTrackingResult {
   readonly matrix: Float32Array | null
   /** Reine Rechenzeit im Worker (ms). */
   readonly processingMs: number
+  /** Arm-relevante Körperpunkte (siehe `POSE_POINTS`) oder null (aus / nicht erkannt). */
+  readonly pose?: Float32Array | null
 }
 
 /** Kopfrotation in Grad (Euler ZYX): Nicken (x), Drehen (y), Neigen (z). */

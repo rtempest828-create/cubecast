@@ -101,6 +101,27 @@ export function quatFromEulerZYX(xDeg: number, yDeg: number, zDeg: number): Quat
   return quatMultiply(quatMultiply(qz, qy), qx)
 }
 
+/** Dreht einen Vektor mit einer Einheits-Quaternion. */
+export function quatRotate(q: Quat, v: Vec3): Vec3 {
+  const [x, y, z, w] = q
+  // t = 2 · (q.xyz × v);  v' = v + w·t + q.xyz × t
+  const tx = 2 * (y * v[2] - z * v[1])
+  const ty = 2 * (z * v[0] - x * v[2])
+  const tz = 2 * (x * v[1] - y * v[0])
+  return [v[0] + w * tx + (y * tz - z * ty), v[1] + w * ty + (z * tx - x * tz), v[2] + w * tz + (x * ty - y * tx)]
+}
+
+/**
+ * Winkelgeschwindigkeit (rad/s, im Bezugssystem von `previous`… `current`) aus zwei
+ * Orientierungen im Abstand `dtSec`. Für kleine Drehungen pro Frame genau genug.
+ */
+export function angularVelocity(previous: Quat, current: Quat, dtSec: number): Vec3 {
+  const d = quatMultiply(current, quatConjugate(previous))
+  const sign = d[3] < 0 ? -1 : 1
+  const k = (2 * sign) / dtSec
+  return [d[0] * k, d[1] * k, d[2] * k]
+}
+
 /** Spaltenweise 4×4-Matrix aus Quaternion und Verschiebung (für Tests und Simulator). */
 export function matrix4FromQuat(q: Quat, translation: Vec3 = [0, 0, 0]): number[] {
   const [x, y, z, w] = q

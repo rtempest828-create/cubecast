@@ -66,12 +66,16 @@ export function defaultDriversForRole(role: RoleId): DriverConfig[] {
       return [createDriver('position', { id: 'open', source: 'mouth.open', axis: 'y', outputMin: 0, outputMax: -1 })]
     case 'upperLip':
       return [createDriver('position', { id: 'smile', source: 'mouth.smile', axis: 'y', outputMin: 0, outputMax: 0.3 })]
+    // Physik: Achsen passend zur typischen Form (Ohren stehen hoch, Schwänze zeigen nach hinten).
     case 'leftEar':
     case 'rightEar':
+      return [createDriver('physics', { id: 'physics', physics: { strength: 0.4, damping: 0.35, axes: ['x', 'z'] } })]
     case 'tail':
+      return [createDriver('physics', { id: 'physics', physics: { strength: 0.6, damping: 0.3, axes: ['x', 'y'] } })]
     case 'hair':
+      return [createDriver('physics', { id: 'physics', physics: { strength: 0.5, damping: 0.4, axes: ['x', 'z'] } })]
     case 'wings':
-      return [createDriver('physics', { id: 'physics' })]
+      return [createDriver('physics', { id: 'physics', physics: { strength: 0.4, damping: 0.4, axes: ['y', 'z'] } })]
     default:
       return []
   }

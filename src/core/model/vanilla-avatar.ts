@@ -5,6 +5,7 @@ import type { NormalizedSkin, SkinModelType } from '../skin/skin'
 import { vanillaPartSpecs } from '../skin/vanilla-parts'
 import type { AvatarModel, PartNode, TextureDef } from './avatar-model'
 import { boxUv } from './box-uv'
+import { buildCosmetics, createCosmeticsTexture, hasCosmetics, NO_COSMETICS, type CosmeticSettings } from './cosmetics'
 
 export const SKIN_TEXTURE_ID = 'skin'
 export const FACE_TEXTURE_ID = 'face'
@@ -64,9 +65,10 @@ function faceOverlayPart(headPivot: Vec3): PartNode {
  * Baut das Vanilla-Spielermodell: sechs Körperteile, jedes mit seiner Außenschicht
  * als Kind-Teil (gleicher Drehpunkt), damit sich die Ebenen getrennt ein-/ausblenden lassen.
  */
-export function buildVanillaAvatar(skin: NormalizedSkin, model: SkinModelType): AvatarModel {
+export function buildVanillaAvatar(skin: NormalizedSkin, model: SkinModelType, cosmetics: CosmeticSettings = NO_COSMETICS): AvatarModel {
   const texture: TextureDef = { id: SKIN_TEXTURE_ID, name: 'Skin', image: skin.image, uvWidth: 64, uvHeight: 64 }
   const faceTexture: TextureDef = { id: FACE_TEXTURE_ID, name: 'Gesicht', image: extractFaceSource(skin).image, uvWidth: 8, uvHeight: 8 }
+  const extras = buildCosmetics(cosmetics)
 
   const parts: PartNode[] = vanillaPartSpecs(model).map((spec) => {
     const to = add3(spec.from, spec.size)
@@ -100,7 +102,12 @@ export function buildVanillaAvatar(skin: NormalizedSkin, model: SkinModelType): 
       pivot: spec.pivot,
       rotation: [0, 0, 0],
       visible: true,
-      children: spec.id === 'head' ? [layer, faceOverlayPart(spec.pivot)] : [layer],
+      children:
+        spec.id === 'head'
+          ? [layer, faceOverlayPart(spec.pivot), ...extras.head]
+          : spec.id === 'body'
+            ? [layer, ...extras.body]
+            : [layer],
       cubes: [
         {
           id: `vanilla.${spec.id}.cube`,
@@ -126,11 +133,13 @@ export function buildVanillaAvatar(skin: NormalizedSkin, model: SkinModelType): 
     cubes: [],
     children: parts
   }
-  return {
-    root,
-    textures: new Map([
-      [texture.id, texture],
-      [faceTexture.id, faceTexture]
-    ])
+  const textures = new Map<string, TextureDef>([
+    [texture.id, texture],
+    [faceTexture.id, faceTexture]
+  ])
+  if (hasCosmetics(cosmetics)) {
+    const cosmeticsTexture = createCosmeticsTexture()
+    textures.set(cosmeticsTexture.id, cosmeticsTexture)
   }
+  return { root, textures }
 }

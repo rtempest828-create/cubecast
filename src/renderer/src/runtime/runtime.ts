@@ -1,15 +1,19 @@
-import { effect } from '@preact/signals'
+import { effect, signal } from '@preact/signals'
 import { applyEmotion, detectEmotion, type Emotion } from '@core/face/emotions'
 import { composeFace, faceStateFromPose, faceStateKey, roundFaceState } from '@core/face/face-compose'
 import { FACE_TEXTURE_ID, SKIN_TEXTURE_ID } from '@core/model/vanilla-avatar'
-import type { PartPose } from '@core/pipeline/pose'
+import { PhysicsSystem } from '@core/physics/physics'
+import { applyBody } from '@core/pipeline/body'
+import { PoseBuilder, type PartPose } from '@core/pipeline/pose'
 import { DriverSmoother } from '@core/roles/drivers'
 import { evaluateRig, FACE_PART_IDS } from '@core/roles/rig'
+import { ArmTracker, armTargetsFromPose, type ArmTargets } from '@core/tracking/arms'
 import { HeadTracker } from '@core/tracking/head-tracker'
 import { avatarBlendshapes } from '@core/tracking/signals'
 import { composeSignals } from '@core/tracking/simulator'
 import type { Viewport } from '@render/viewport'
-import { loadedSkin } from '../state/app-state'
+import { avatarModel, loadedSkin } from '../state/app-state'
+import { bodyState, lipSyncClient, micLevel } from '../state/body-state'
 import { debugMode, driverValues, liveSignals, manualSignals, overriddenSignals, signalMode } from '../state/debug-state'
 import { currentEmotion, currentFaceState, faceLayout, faceSource, faceVariants, manualEmotion, rig } from '../state/rig-state'
 import { trackingClient, trackingDebug, trackingSettings } from '../state/tracking-state'
@@ -18,13 +22,19 @@ import { trackingClient, trackingDebug, trackingSettings } from '../state/tracki
  * Laufzeit pro Frame:
  *   Tracking → Kopf-Tracker + Blendshapes (aus Sicht der Figur, Ruhewerte abgezogen)
  *   → Simulator (Webcam/Manuell/Gemischt) → Rollen-Treiber → Pose
+ *   → Körper (Leerlauf, Mitbewegung, Arm-Tracking) → Physik
  *   → Gesichtszustand + Emotion → Gesichts-Textur → 3D-Ansicht
- * Ab M4 kommen Idle, Physik, später Animationen und Lua dazu.
+ * Ab M5b/M5c kommen Animationen und Lua dazu (vor Körper/Physik).
  */
 export const headTracker = new HeadTracker(trackingSettings.peek())
 effect(() => headTracker.setSettings(trackingSettings.value))
 
 const smoother = new DriverSmoother()
+const physics = new PhysicsSystem()
+const armTracker = new ArmTracker()
+let lastPoseFrame = -1
+let lastPoseTime = -Infinity
+let lastArmTargets: ArmTargets | null = null
 const DEBUG_INTERVAL_MS = 100
 /** So lange muss eine erkannte Emotion anliegen, bevor sie angezeigt wird (gegen Flackern). */
 const EMOTION_HOLD_MS = 150
@@ -63,10 +73,36 @@ export function attachRuntime(viewport: Viewport): () => void {
         ? avatarBlendshapes(result.blendshapes, { mirror: settings.mirror, swapSides: currentRig.face.swapSides, baseline: blendshapeBaseline })
         : null
 
+    // Mikrofon (nur wenn per Knopf gestartet)
+    const body = bodyState.peek()
+    const audio = lipSyncClient.read(dt, { gain: body.micGain, gateDb: body.micGateDb })
+
     // 2. Simulator + Rollen
-    const signals = composeSignals({ blendshapes: liveBlend, head }, manualSignals.peek(), overriddenSignals.peek(), signalMode.peek())
+    const signals = composeSignals(
+      { blendshapes: liveBlend, head, position: faceVisible ? headTracker.position : [0, 0, 0], audio },
+      manualSignals.peek(),
+      overriddenSignals.peek(),
+      signalMode.peek()
+    )
     const output = evaluateRig(currentRig, signals, dt, smoother)
-    const pose = new Map(output.pose)
+
+    // 3. Körper (Leerlauf, Mitbewegung, Arme) und Physik
+    const builder = PoseBuilder.from(output.pose)
+    const model = avatarModel.peek()
+    let armTargets: ArmTargets | null = null
+    if (body.armTracking && running) {
+      if (result?.pose && result.frameId !== lastPoseFrame) {
+        lastPoseFrame = result.frameId
+        lastPoseTime = nowMs
+        lastArmTargets = armTargetsFromPose(result.pose, settings.mirror)
+      }
+      // Kurze Aussetzer überbrücken, erst danach zurück in den Leerlauf.
+      if (nowMs - lastPoseTime < 300) armTargets = lastArmTargets
+    }
+    const arms = armTracker.update(armTargets, nowMs / 1000, dt)
+    applyBody(builder, model, currentRig, body, { timeSec: nowMs / 1000, signals, arms })
+    physics.step(model, currentRig, builder, dt, nowMs / 1000, { enabled: body.physicsEnabled, strength: body.physicsStrength })
+    const pose = new Map(builder.build())
 
     // 3. Gesicht
     let emotion: Emotion = 'neutral'
@@ -123,6 +159,9 @@ export function attachRuntime(viewport: Viewport): () => void {
         head,
         blendshapes: faceVisible ? (result?.blendshapes ?? null) : null
       }
+      micLevel.value = audio?.level ?? 0
+      physicsPartCount.value = currentRig.assignments.filter((a) => a.confirmed && a.drivers.some((d) => d.mode === 'physics')).length
+      armTrackingActive.value = arms.left.weight > 0.5 || arms.right.weight > 0.5
       if (currentEmotion.peek() !== emotion) currentEmotion.value = emotion
       if (faceStateKey(currentFaceState.peek()) !== faceStateKey(faceState)) currentFaceState.value = faceState
       if (debugMode.peek()) {
@@ -132,6 +171,16 @@ export function attachRuntime(viewport: Viewport): () => void {
     }
   })
   return () => viewport.setFrameCallback(null)
+}
+
+/** Anzahl der Teile mit aktiver Physik (für Anzeige). */
+export const physicsPartCount = signal(0)
+/** Ob die Arme gerade dem Kamerabild folgen. */
+export const armTrackingActive = signal(false)
+
+/** Physik zurücksetzen (z. B. nach Modellwechsel oder wenn etwas „hängt“). */
+export function resetPhysics(): void {
+  physics.reset()
 }
 
 /** „Neutrale Pose setzen“: Kopfhaltung und Mimik-Ruhewerte übernehmen. */

@@ -2,6 +2,7 @@ import { signal } from '@preact/signals'
 import wasmLoaderUrl from '@mediapipe/tasks-vision/vision_wasm_module_internal.js?url'
 import wasmBinaryUrl from '@mediapipe/tasks-vision/vision_wasm_module_internal.wasm?url'
 import faceModelUrl from '@resources/mediapipe/face_landmarker.task?url'
+import poseModelUrl from '@resources/mediapipe/pose_landmarker_lite.task?url'
 import type { FaceTrackingResult } from '@core/tracking/types'
 import { CameraError, openCamera, stopStream } from './camera'
 import type { FromWorkerMessage, ToWorkerMessage, TrackingDelegate } from './protocol'
@@ -39,6 +40,11 @@ export class TrackingClient {
   readonly failure = signal<TrackingFailure | null>(null)
   readonly delegate = signal<TrackingDelegate | null>(null)
   readonly stream = signal<MediaStream | null>(null)
+  /** Arm-Tracking (Pose-Modell): aus, lädt, bereit oder Fehler. */
+  readonly poseStatus = signal<'off' | 'loading' | 'ready' | 'error'>('off')
+  readonly poseError = signal<string | null>(null)
+  private poseEnabled = false
+  private poseLoaded = false
 
   /** Letztes Ergebnis; wird pro Render-Frame gelesen (bewusst kein Signal). */
   latest: FaceTrackingResult | null = null
@@ -126,6 +132,14 @@ export class TrackingClient {
     this.workerReady = null
   }
 
+  /** Arm-Tracking ein-/ausschalten. Das Pose-Modell wird beim ersten Einschalten geladen. */
+  setPoseEnabled(enabled: boolean): void {
+    this.poseEnabled = enabled
+    this.poseStatus.value = !enabled ? 'off' : this.poseLoaded ? 'ready' : 'loading'
+    if (!enabled) this.poseError.value = null
+    this.worker?.postMessage({ type: 'set-pose', enabled } satisfies ToWorkerMessage)
+  }
+
   getStats(nowMs: number): TrackingStats {
     // Ergebnisse der letzten Sekunde zählen.
     while (this.resultTimes.length > 0 && nowMs - this.resultTimes[0]! > 1000) this.resultTimes.shift()
@@ -156,9 +170,11 @@ export class TrackingClient {
       wasmLoaderUrl: absoluteUrl(wasmLoaderUrl),
       wasmBinaryUrl: absoluteUrl(wasmBinaryUrl),
       modelUrl: absoluteUrl(faceModelUrl),
+      poseModelUrl: absoluteUrl(poseModelUrl),
       preferGpu: true
     }
     worker.postMessage(init)
+    worker.postMessage({ type: 'set-pose', enabled: this.poseEnabled } satisfies ToWorkerMessage)
     return this.workerReady
   }
 
@@ -169,6 +185,7 @@ export class TrackingClient {
     this.worker?.terminate()
     this.worker = null
     this.workerReady = null
+    this.poseLoaded = false
   }
 
   private onWorkerMessage(message: FromWorkerMessage): void {
@@ -180,6 +197,14 @@ export class TrackingClient {
         break
       case 'init-error':
         this.failInit(message.message)
+        break
+      case 'pose-ready':
+        this.poseLoaded = true
+        if (this.poseEnabled) this.poseStatus.value = 'ready'
+        break
+      case 'pose-error':
+        this.poseStatus.value = 'error'
+        this.poseError.value = message.message
         break
       case 'result': {
         this.busy = false

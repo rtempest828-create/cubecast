@@ -1,5 +1,5 @@
 import type { JSX } from 'preact'
-import { HEAD_SIGNALS } from '@core/tracking/signals'
+import { HEAD_POSITION_SIGNALS, HEAD_SIGNALS } from '@core/tracking/signals'
 import { SIMULATOR_CHANNELS, type SignalSourceMode } from '@core/tracking/simulator'
 import { t } from '@shared/i18n'
 import { liveSignals, manualSignals, overriddenSignals, releaseSignal, resetSimulator, setManualSignal, signalMode } from '../state/debug-state'
@@ -8,6 +8,7 @@ const MODES: readonly SignalSourceMode[] = ['webcam', 'manual', 'mixed']
 
 function range(name: string): [number, number, number] {
   if ((HEAD_SIGNALS as readonly string[]).includes(name)) return [-60, 60, 1]
+  if ((HEAD_POSITION_SIGNALS as readonly string[]).includes(name)) return [-20, 20, 0.5]
   if (name.startsWith('gaze.')) return [-1, 1, 0.01]
   return [0, 1, 0.01]
 }
@@ -50,7 +51,7 @@ function ChannelRow({ name }: { readonly name: string }): JSX.Element {
 /** Tracking-Simulator: alle Kanäle als Regler, mit Live-Markierung der echten Werte. */
 export function SimulatorView(): JSX.Element {
   const head = SIMULATOR_CHANNELS.filter((n) => n.startsWith('head.'))
-  const gaze = SIMULATOR_CHANNELS.filter((n) => n.startsWith('gaze.'))
+  const gaze = SIMULATOR_CHANNELS.filter((n) => n.startsWith('gaze.') || n.startsWith('audio.'))
   const blendshapes = SIMULATOR_CHANNELS.filter((n) => !n.includes('.'))
 
   return (
