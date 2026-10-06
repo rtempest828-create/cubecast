@@ -46,10 +46,11 @@ Tracking-Worker → Signal-Quelle (Webcam | Simulator | gemischt) → Kalibrieru
 | M1 | Skin laden (Datei, Drag & Drop, Spielername), 64×32/HD, Steve/Alex, beide Ebenen |
 | M2 | Webcam, Tracking-Worker, Kopfrotation, One-Euro-Filter, Kalibrierung, Debug-Werte |
 | M3 | Gesichts-Overlay + Varianten, Augen/Mund/Brauen/Emotionen, **Debug-Modus (F12)** mit Baum, Raycast-Auswahl, Rollen, Tracking-Simulator |
+| M3b | **Chibi-Modus:** nicht-destruktive Kind-/Chibi-Version des Avatars (Proportionen, Gesicht, Zubehör), Umschalten, pro Avatar gespeichert, Feinanpassung pro Rolle/Teil im Debug-Modus. Spezifikation nach Interview mit dem Nutzer. Da M4 und M5a schon fertig sind, wird M3b als Nächstes gebaut (vor M5b) und deckt Vanilla, Test-Zubehör und Figura-Teile gleich mit ab. |
 | M4 | Körper-Idle, Physik, optional Arm-/Hand-Tracking, optional Audio-Lip-Sync |
 | M5a | `.bbmodel`-Parser, Figura-Ordner, Parent-Types, Cosmetic-Zuordnung (+ `.moon` falls nötig) |
-| M5b | Blockbench-Animationen (alle Kanäle/Interpolationen, Ausdrücke, Loop-Modi, Blending), Animations-Panel |
-| M5c-1 | Lua-Kern: Sandbox, `require`, `models`, `animations`, `vanilla_model`, Events, Warnungen |
+| M5b | Blockbench-Animationen (alle Kanäle/Interpolationen, Ausdrücke, Loop-Modi, Blending), Animations-Panel – inkl. Chibi-Verhalten für Animationen |
+| M5c-1 | Lua-Kern: Sandbox, `require`, `models`, `animations`, `vanilla_model`, Events, Warnungen – inkl. Chibi-Verhalten für Lua-Positionen |
 | M5c-2 | `keybinds`, `action_wheel`, Mock-Objekte, `config`, Pings lokal, Stubs, `COMPATIBILITY.md` |
 | M6 | OBS-Quelle, Transparenz, Ausgabefenster, Kamera-Presets, Profile, globale Hotkeys, Face-Editor, Packaging |
 
