@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Kein Zugriff nach außen: nur eigene Dateien; ws://localhost nur für Vites Hot-Reload. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://localhost:*; worker-src 'self' blob:"
+    />
+    <title>Minecraft VTuber</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>
