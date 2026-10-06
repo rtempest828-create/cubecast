@@ -1,14 +1,15 @@
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, session } from 'electron'
 import { t } from '../shared/i18n'
+import { APP_ENTRY_URL, registerAppScheme, serveAppProtocol } from './app-protocol'
 import { registerIpcHandlers } from './ipc'
 import { installNetworkGuard } from './network-guard'
 
 /** Von electron-vite im Entwicklungsmodus gesetzt (Vite-Dev-Server). */
 const devServerUrl = process.env['ELECTRON_RENDERER_URL']
-const rendererFile = join(__dirname, '../renderer/index.html')
-const appUrl = devServerUrl ?? pathToFileURL(rendererFile).toString()
+const appUrl = devServerUrl ?? APP_ENTRY_URL
+
+registerAppScheme()
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -30,9 +31,7 @@ function createMainWindow(): BrowserWindow {
     }
   })
   window.once('ready-to-show', () => window.show())
-
-  if (devServerUrl) void window.loadURL(devServerUrl)
-  else void window.loadFile(rendererFile)
+  void window.loadURL(appUrl)
   return window
 }
 
@@ -44,6 +43,7 @@ app.on('web-contents-created', (_event, contents) => {
 })
 
 app.whenReady().then(() => {
+  if (!devServerUrl) serveAppProtocol(join(__dirname, '../renderer'))
   installNetworkGuard(session.defaultSession, devServerUrl)
   registerIpcHandlers(appUrl)
   createMainWindow()

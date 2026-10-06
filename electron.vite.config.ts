@@ -5,7 +5,8 @@ import { defineConfig } from 'electron-vite'
 const alias = {
   '@core': resolve(__dirname, 'src/core'),
   '@shared': resolve(__dirname, 'src/shared'),
-  '@render': resolve(__dirname, 'src/render')
+  '@render': resolve(__dirname, 'src/render'),
+  '@resources': resolve(__dirname, 'resources')
 }
 
 export default defineConfig({
@@ -18,6 +19,8 @@ export default defineConfig({
   renderer: {
     root: 'src/renderer',
     resolve: { alias },
+    // Tracking-Worker als ES-Modul (MediaPipe lädt seine WASM-Laufzeit dann per import()).
+    worker: { format: 'es' },
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, 'src/renderer/index.html') }

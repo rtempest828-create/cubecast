@@ -15,7 +15,8 @@ export function isTrustedUrl(senderUrl: string, appUrl: string): boolean {
       const normalize = (u: URL): string => decodeURIComponent(u.pathname).toLowerCase()
       return sender.protocol === 'file:' && normalize(sender) === normalize(app)
     }
-    return sender.origin === app.origin
+    // Nicht `origin` vergleichen: Für eigene Protokolle (app:) ist sie laut URL-Standard „null“.
+    return sender.protocol === app.protocol && sender.host === app.host
   } catch {
     return false
   }

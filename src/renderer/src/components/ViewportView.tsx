@@ -3,6 +3,7 @@ import type { JSX } from 'preact'
 import { useEffect, useRef } from 'preact/hooks'
 import { Viewport } from '@render/viewport'
 import { t } from '@shared/i18n'
+import { attachRuntime } from '../runtime/runtime'
 import { avatarModel, pushToast, showOuterLayer } from '../state/app-state'
 
 export function ViewportView(): JSX.Element {
@@ -21,7 +22,9 @@ export function ViewportView(): JSX.Element {
     }
     const stopAvatar = effect(() => viewport.setAvatar(avatarModel.value))
     const stopLayer = effect(() => viewport.setOuterLayerVisible(showOuterLayer.value))
+    const detachRuntime = attachRuntime(viewport)
     return () => {
+      detachRuntime()
       stopAvatar()
       stopLayer()
       viewport.dispose()

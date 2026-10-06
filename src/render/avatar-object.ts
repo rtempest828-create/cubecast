@@ -7,9 +7,11 @@ import {
   MathUtils,
   Mesh,
   MeshLambertMaterial,
-  type DataTexture
+  type DataTexture,
+  type Euler
 } from 'three'
 import { walkParts, type AvatarModel, type PartNode, type PartOrigin, type RenderLayer } from '../core/model/avatar-model'
+import type { Pose } from '../core/pipeline/pose'
 import { buildCubeGeometry } from '../core/model/cube-geometry'
 import { sub3, type Vec3 } from '../core/math/vec'
 import { createPixelTexture } from './pixel-texture'
@@ -21,6 +23,10 @@ import { createPixelTexture } from './pixel-texture'
 export class AvatarObject {
   readonly root = new Group()
   private readonly partGroups = new Map<string, Group>()
+  /** Ruhe-Rotation jedes Teils; Posen werden darauf addiert. */
+  private readonly restRotations = new Map<string, Euler>()
+  /** Teile, die in der letzten Pose verändert wurden. */
+  private readonly posedParts = new Set<string>()
   private readonly geometries: BufferGeometry[] = []
   private readonly materials = new Map<string, MeshLambertMaterial>()
   private readonly textures = new Map<string, DataTexture>()
@@ -34,6 +40,31 @@ export class AvatarObject {
   /** Three.js-Gruppe eines Teils (für Transformationen). */
   getPartObject(id: string): Group | undefined {
     return this.partGroups.get(id)
+  }
+
+  /**
+   * Wendet eine Pose an: Rotation = Ruhe-Rotation + Pose (Euler ZYX, wie Figura).
+   * Teile, die nicht mehr in der Pose vorkommen, gehen in die Ruhelage zurück.
+   */
+  applyPose(pose: Pose): void {
+    for (const id of this.posedParts) {
+      if (pose.has(id)) continue
+      const rest = this.restRotations.get(id)
+      if (rest) this.partGroups.get(id)?.rotation.copy(rest)
+    }
+    this.posedParts.clear()
+    for (const [id, partPose] of pose) {
+      const group = this.partGroups.get(id)
+      const rest = this.restRotations.get(id)
+      if (!group || !rest) continue
+      group.rotation.set(
+        rest.x + MathUtils.degToRad(partPose.rotation[0]),
+        rest.y + MathUtils.degToRad(partPose.rotation[1]),
+        rest.z + MathUtils.degToRad(partPose.rotation[2]),
+        'ZYX'
+      )
+      this.posedParts.add(id)
+    }
   }
 
   /** Blendet alle Teile einer Herkunft ein/aus (z. B. die gesamte Außenschicht). */
@@ -90,6 +121,7 @@ export class AvatarObject {
 
     for (const child of part.children) group.add(this.buildPart(child, part.pivot))
     this.partGroups.set(part.id, group)
+    this.restRotations.set(part.id, group.rotation.clone())
     return group
   }
 

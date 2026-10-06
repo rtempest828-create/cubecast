@@ -16,7 +16,8 @@
     "paths": {
       "@core/*": ["./src/core/*"],
       "@shared/*": ["./src/shared/*"],
-      "@render/*": ["./src/render/*"]
+      "@render/*": ["./src/render/*"],
+      "@resources/*": ["./resources/*"]
     }
   }
 }

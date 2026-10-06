@@ -2,10 +2,11 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <!-- Kein Zugriff nach außen: nur eigene Dateien; ws://localhost nur für Vites Hot-Reload. -->
+    <!-- Kein Zugriff nach außen: nur eigene Dateien; ws://localhost nur für Vites Hot-Reload.
+         'wasm-unsafe-eval' erlaubt nur das Kompilieren von WebAssembly (MediaPipe), kein eval(). -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://localhost:*; worker-src 'self' blob:"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' ws://localhost:*; worker-src 'self' blob:"
     />
     <title>Minecraft VTuber</title>
   </head>

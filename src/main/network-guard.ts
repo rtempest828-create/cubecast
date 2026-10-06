@@ -24,7 +24,8 @@ export function installNetworkGuard(session: Session, devServerUrl: string | und
   session.setPermissionCheckHandler((_contents, permission) => permission === 'media')
 }
 
-const LOCAL_PROTOCOLS = new Set(['file:', 'data:', 'blob:', 'devtools:', 'chrome-extension:'])
+/** `app:` ist das eigene, lokale Protokoll der gebauten App (siehe `app-protocol.ts`). */
+const LOCAL_PROTOCOLS = new Set(['app:', 'file:', 'data:', 'blob:', 'devtools:', 'chrome-extension:'])
 
 export function isAllowedUrl(url: string, devHost: string | null): boolean {
   let parsed: URL
