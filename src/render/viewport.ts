@@ -126,6 +126,20 @@ export class Viewport {
     this.avatar?.applyPose(pose)
   }
 
+  /** Aktuelle Kamera (z. B. um sie für die Ausgabe zu übernehmen). */
+  getCameraState(): { position: [number, number, number]; target: [number, number, number]; fov: number } {
+    const p = this.camera.position
+    const t = this.controls.target
+    return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z], fov: this.camera.fov }
+  }
+
+  /** Kamera auf die Standardansicht zurücksetzen. */
+  resetCamera(): void {
+    this.camera.position.set(22, 26, 62)
+    this.controls.target.set(0, 16, 0)
+    this.controls.update()
+  }
+
   setOuterLayerVisible(visible: boolean): void {
     this.outerLayerVisible = visible
     this.avatar?.setOriginVisible('vanilla-layer', visible)

@@ -21,6 +21,7 @@ import { currentEmotion, currentFaceState, faceLayout, faceSource, faceVariants,
 import { trackingClient, trackingDebug, trackingSettings } from '../state/tracking-state'
 import { animationClips, animationPlayer, publishAnimationStatus, settingsOf } from '../state/animation-state'
 import { runTimeline, stepLua } from '../state/lua-state'
+import { publishPose, publishTexture } from '../state/output-state'
 import { vanillaOverride } from '../state/app-state'
 
 /**
@@ -142,7 +143,9 @@ export function attachRuntime(viewport: Viewport): () => void {
       const inputs = [source, faceVariants.peek(), faceLayout.peek(), viewport.avatarVersion]
       const key = faceStateKey(faceState)
       if (key !== faceKey || inputs.some((value, i) => value !== faceInputs[i])) {
-        viewport.updateTexture(FACE_TEXTURE_ID, composeFace(source, faceVariants.peek(), faceLayout.peek(), faceState))
+        const face = composeFace(source, faceVariants.peek(), faceLayout.peek(), faceState)
+        viewport.updateTexture(FACE_TEXTURE_ID, face)
+        publishTexture(FACE_TEXTURE_ID, face)
         faceKey = key
         faceInputs = inputs
       }
@@ -155,12 +158,15 @@ export function attachRuntime(viewport: Viewport): () => void {
     const textureKey = `${viewport.avatarVersion}|${useCleared}`
     if (textureKey !== skinTextureKey || skinTextureSource !== source) {
       const skin = loadedSkin.peek().skin
-      viewport.updateTexture(SKIN_TEXTURE_ID, useCleared && source.skinWithoutHatFront ? source.skinWithoutHatFront : skin.image)
+      const skinImage = useCleared && source.skinWithoutHatFront ? source.skinWithoutHatFront : skin.image
+      viewport.updateTexture(SKIN_TEXTURE_ID, skinImage)
+      publishTexture(SKIN_TEXTURE_ID, skinImage)
       skinTextureKey = textureKey
       skinTextureSource = source
     }
 
     viewport.applyPose(pose)
+    publishPose(pose, nowMs)
 
     // 4. Live-Werte für die Oberfläche
     if (nowMs - lastDebug >= DEBUG_INTERVAL_MS) {

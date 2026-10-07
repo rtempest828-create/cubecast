@@ -10,6 +10,7 @@ import { DebugHud } from '../debug/DebugHud'
 import { attachRuntime } from '../runtime/runtime'
 import { avatarModel, pushToast, showOuterLayer } from '../state/app-state'
 import { clearSelection, debugHidden, debugMode, debugOptions, selectCube, selection, selectPart, soloParts } from '../state/debug-state'
+import { setCameraProvider } from '../state/output-state'
 import { faceLayout, faceVariants } from '../state/rig-state'
 
 /** Ab dieser Mausbewegung (px) gilt ein Klick als Kameradrehung, nicht als Auswahl. */
@@ -94,6 +95,7 @@ export function ViewportView(): JSX.Element {
       })
     ]
     const detachRuntime = attachRuntime(viewport)
+    setCameraProvider(() => viewport.getCameraState())
 
     // Klick-Auswahl im Debug-Modus (Ziehen dreht weiterhin die Kamera).
     let down: { x: number; y: number } | null = null
@@ -122,6 +124,7 @@ export function ViewportView(): JSX.Element {
       canvas.removeEventListener('pointerdown', onDown)
       canvas.removeEventListener('pointerup', onUp)
       detachRuntime()
+      setCameraProvider(null)
       stops.forEach((stop) => stop())
       viewport.dispose()
     }

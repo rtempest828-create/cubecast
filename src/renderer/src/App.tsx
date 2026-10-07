@@ -9,8 +9,11 @@ import { AnimationPanel } from './panels/AnimationPanel'
 import { FacePanel } from './panels/FacePanel'
 import { ModelPanel } from './panels/ModelPanel'
 import { PhysicsPanel } from './panels/PhysicsPanel'
-import { PlaceholderPanel } from './panels/PlaceholderPanel'
+import { OutputPanel } from './panels/OutputPanel'
 import { ScriptPanel } from './panels/ScriptPanel'
+import { SettingsPanel } from './panels/SettingsPanel'
+import './state/hotkey-state'
+import { loadAutoProfile } from './state/profile-state'
 import { TrackingPanel } from './panels/TrackingPanel'
 import { activeTab, type TabId } from './state/app-state'
 import { clearSelection, debugMode } from './state/debug-state'
@@ -22,8 +25,8 @@ const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
   physics: PhysicsPanel,
   animations: AnimationPanel,
   script: ScriptPanel,
-  output: () => <PlaceholderPanel title="tab.output" milestone="M6" />,
-  settings: () => <PlaceholderPanel title="tab.settings" milestone="M6" />
+  output: OutputPanel,
+  settings: SettingsPanel
 }
 
 export function App(): JSX.Element {
@@ -38,6 +41,11 @@ export function App(): JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Profil für den Start (falls in den Einstellungen gewählt)
+  useEffect(() => {
+    if ('vtuber' in window) void loadAutoProfile()
   }, [])
 
   const Panel = PANELS[activeTab.value]

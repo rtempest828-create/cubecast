@@ -3,6 +3,7 @@ import type { Emotion } from '@core/face/emotions'
 import { NEUTRAL_FACE_STATE, type FaceState } from '@core/face/face-compose'
 import { analyzeFace, type FaceLayout } from '@core/face/face-layout'
 import { extractFaceSource } from '@core/face/face-source'
+import { applyCustomVariants } from '@core/face/face-custom'
 import { generateFaceVariants } from '@core/face/face-variants'
 import type { RgbaImage } from '@core/image/rgba-image'
 import { logger } from '@core/log/logger'
@@ -26,7 +27,10 @@ export const avatarKey = signal<string | null>(null)
 
 /** Wirksames Layout: vom Nutzer angepasst oder automatisch erkannt. */
 export const faceLayout = computed<FaceLayout>(() => rig.value.face.layout ?? faceAnalysis.value.layout)
-export const faceVariants = computed(() => generateFaceVariants(faceSource.value.grid, faceAnalysis.value, faceLayout.value))
+/** Automatisch erzeugte Varianten (Grundlage für den Face-Editor). */
+export const generatedFaceVariants = computed(() => generateFaceVariants(faceSource.value.grid, faceAnalysis.value, faceLayout.value))
+/** Wirksame Varianten: automatisch erzeugt, ggf. durch eigene aus dem Face-Editor ersetzt. */
+export const faceVariants = computed(() => applyCustomVariants(generatedFaceVariants.value, rig.value.face.custom ?? {}))
 
 /** Manuell gewählte Emotion (null = automatisch bzw. neutral). */
 export const manualEmotion = signal<Emotion | null>(null)

@@ -9,6 +9,7 @@ import { t, type MessageKey } from '@shared/i18n'
 import { FaceGrid, FEATURE_COLORS } from '../components/FaceGrid'
 import { PixelCanvas } from '../components/PixelCanvas'
 import { Slider } from '../components/Slider'
+import { FaceEditorCard } from './FaceEditorCard'
 import {
   currentEmotion,
   currentFaceState,
@@ -191,6 +192,7 @@ export function FacePanel(): JSX.Element {
       <LayoutCard />
       <ExpressionCard />
       <EmotionCard />
+      <FaceEditorCard />
     </div>
   )
 }

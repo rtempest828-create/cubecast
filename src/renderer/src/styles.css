@@ -1150,3 +1150,83 @@ kbd {
 .lua-log-error span {
   color: var(--danger);
 }
+
+/* ---------- Ausgabe, Einstellungen, Face-Editor ---------- */
+.hotkey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hotkey {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hotkey span:first-of-type {
+  flex: 1;
+}
+
+.hotkey .button {
+  padding: 4px 8px;
+}
+
+.face-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.face-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 26px);
+  grid-template-rows: repeat(8, 26px);
+  gap: 1px;
+  padding: 1px;
+  background: var(--border);
+  user-select: none;
+}
+
+.face-editor-cell {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  cursor: crosshair;
+}
+
+.face-editor-cell.edited {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.face-editor-tools {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.face-editor-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.swatch.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

@@ -3,8 +3,12 @@ import { app, BrowserWindow, session } from 'electron'
 import { t } from '../shared/i18n'
 import { APP_ENTRY_URL, registerAppScheme, serveAppProtocol } from './app-protocol'
 import { AvatarStore } from './avatar-store'
-import { registerIpcHandlers } from './ipc'
+import { clearHotkeys } from './hotkeys'
+import { registerIpcHandlers, registerOutputHandlers } from './ipc'
 import { installNetworkGuard } from './network-guard'
+import { OutputServer } from './output-server'
+import { OutputWindow } from './output-window'
+import { ProfileStore } from './profile-store'
 
 /** Von electron-vite im Entwicklungsmodus gesetzt (Vite-Dev-Server). */
 const devServerUrl = process.env['ELECTRON_RENDERER_URL']
@@ -43,10 +47,27 @@ app.on('web-contents-created', (_event, contents) => {
   contents.setWindowOpenHandler(() => ({ action: 'deny' }))
 })
 
-app.whenReady().then(() => {
+const outputServer = new OutputServer({
+  rendererDir: devServerUrl ? null : join(__dirname, '../renderer'),
+  devServerUrl: devServerUrl ?? null,
+  allowedOrigins: ['app://bundle']
+})
+
+app.whenReady().then(async () => {
   if (!devServerUrl) serveAppProtocol(join(__dirname, '../renderer'))
-  installNetworkGuard(session.defaultSession, devServerUrl)
-  registerIpcHandlers(appUrl, new AvatarStore(join(app.getPath('userData'), 'avatars')))
+  try {
+    await outputServer.start()
+  } catch (error) {
+    console.warn('[Ausgabe] Server konnte nicht starten:', error)
+  }
+  installNetworkGuard(session.defaultSession, devServerUrl, outputServer.port)
+  const figura = registerIpcHandlers(appUrl, new AvatarStore(join(app.getPath('userData'), 'avatars')))
+  registerOutputHandlers(appUrl, {
+    output: outputServer,
+    outputWindow: new OutputWindow(),
+    profiles: new ProfileStore(join(app.getPath('userData'), 'profiles')),
+    figura
+  })
   createMainWindow()
 
   app.on('activate', () => {
@@ -55,3 +76,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => app.quit())
+app.on('will-quit', () => {
+  clearHotkeys()
+  outputServer.stop()
+})

@@ -4,14 +4,18 @@ Windows-Desktop-App, die einen Minecraft-Skin oder Figura-Avatar als blockiges 3
 darstellt und per Webcam-Face-Tracking steuert – zum Streamen mit OBS oder für Discord.
 Alles läuft lokal, ohne Konto und ohne Cloud.
 
-> **Stand: Meilenstein M5c** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
-> Körper-Mitbewegung und Leerlauf, Physik (mit Test-Zubehör), Arm-Tracking, Mikrofon-Lip-Sync,
-> Figura-Avatare (`.bbmodel`) mit Blockbench-Animationen und Lua-Skripten. Streaming-Ausgabe (M6)
-> und der Chibi-Modus (M3b) folgen (siehe [docs/PLAN.md](docs/PLAN.md)).
+> **Stand: Meilenstein M6** – Skin laden, Kopf/Augen/Mund/Mimik per Webcam, Debug-Modus mit Rollen,
+> Körper-Mitbewegung und Leerlauf, Physik, Arm-Tracking, Mikrofon-Lip-Sync, Figura-Avatare mit
+> Blockbench-Animationen und Lua-Skripten, OBS-Ausgabe mit transparentem Hintergrund, Ausgabefenster,
+> Kamera-Presets, Profile, globale Tastenkürzel, Face-Editor und Windows-Installer.
+> Als Nächstes: Chibi-Modus (M3b, siehe [docs/spec-M3b-chibi.md](docs/spec-M3b-chibi.md)).
 
 ## Installation
 
-Voraussetzungen: Windows 10/11, [Node.js](https://nodejs.org/) 20 oder neuer.
+**Als Programm:** `Minecraft-VTuber-Setup-<Version>.exe` ausführen (Erstellung siehe „Installer bauen“).
+Windows warnt eventuell, weil das Programm nicht signiert ist („Weitere Informationen“ → „Trotzdem ausführen“).
+
+**Aus dem Quellcode:** Voraussetzungen Windows 10/11, [Node.js](https://nodejs.org/) 20 oder neuer.
 
 ```bash
 npm install
@@ -36,6 +40,12 @@ Gebaute Version starten:
 ```bash
 npm run build
 npm start
+```
+
+Installer bauen (ergibt `dist/Minecraft-VTuber-Setup-<Version>.exe`):
+
+```bash
+npm run dist
 ```
 
 Tests und Prüfungen:
@@ -159,6 +169,10 @@ auf der Hut-Ebene). Liegt die Erkennung daneben: Merkmal wählen und im Raster e
 Schwellwerte für Augen und Mund sind einstellbar. Ohne Häkchen bei „Augen und Mund bewegen“ bleibt das
 Gesicht statisch und nur der Kopf bewegt sich.
 
+**Face-Editor:** Unten im Bereich lassen sich die Varianten (Auge halb/zu, alle Mundformen) Zelle für
+Zelle selbst zeichnen – Linksklick malt, Rechtsklick stellt das Original wieder her. Eigene Varianten
+ersetzen die automatischen und werden pro Avatar gespeichert.
+
 ### Körper & Physik
 
 | Bereich | Funktion |
@@ -209,6 +223,12 @@ Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
   `primary texture = SKIN`, Kamera-/HUD-Ansichten und `.moon`-Dateien werden nicht unterstützt;
   Lua läuft als 5.4 statt 5.2. Vollständige Liste: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
+- Ausgabe: Die OBS-Quelle bekommt das Bild als Daten über den lokalen Server; bei sehr vielen
+  gleichzeitigen Ausgaben oder großen Figura-Texturen kann der Start der Quelle ein paar Sekunden dauern.
+- Das Ausgabefenster kann auf Windows nicht mit der Maus in der Größe verändert werden (durchsichtige
+  Fenster); Größe im Bereich „Ausgabe“ wählen.
+- Der Installer ist nicht signiert (Windows-SmartScreen-Warnung beim ersten Start).
+
 ## Datenschutz und Sicherheit
 
 - Fenster laufen in der Electron-Sandbox ohne Node-Zugriff.
@@ -219,20 +239,39 @@ Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
 - Das MediaPipe-Modell wird mitgeliefert (`resources/mediapipe/`), es wird nichts nachgeladen.
 - Lua-Skripte laufen in einer WebAssembly-Sandbox (wasmoon) ohne `io`, `os`, `debug`, `package` und
   Dateizugriff, mit Instruktions- und Speicherlimit; Chat senden und Zwischenablage sind gesperrt.
+- Der Ausgabe-Server lauscht nur auf 127.0.0.1, prüft Host und Herkunft jeder Anfrage und nimmt keine
+  Daten an; er liefert nur die Ausgabeseite und den Datenstrom.
 - Figura-Ordner liest nur der Hauptprozess. Die Oberfläche kennt nur Schlüssel gefundener bzw. per
   Dialog gewählter Ordner und kann keine beliebigen Pfade anfordern.
 
-## Einbindung in OBS
+## Einbindung in OBS und Discord (Bereich „Ausgabe“)
 
-Folgt in Meilenstein M6 (Browser-Quelle `http://localhost:PORT` mit transparentem Hintergrund).
+**OBS (empfohlen):** Im Bereich „Ausgabe“ die Adresse kopieren (Standard `http://127.0.0.1:47800/`),
+in OBS *Quellen → + → Browser* anlegen, Adresse einfügen, Breite/Höhe z. B. 1080 × 1080. Der Hintergrund
+ist durchsichtig. Die Seite zeigt genau das, was die App zeigt (Tracking und Skripte laufen in der App).
+
+- **Hintergrund:** durchsichtig, Greenscreen oder eigene Farbe
+- **Kamera:** Ganzkörper, Oberkörper, Nahaufnahme oder „Aktuelle 3D-Ansicht übernehmen“; dazu Zoom und Blickwinkel
+- **Ausgabefenster:** rahmenloses, durchsichtiges Fenster (Größe wählbar, optional immer im Vordergrund) –
+  für Fensteraufnahme oder Discord-Bildschirmübertragung (dort am besten Greenscreen). Verschieben mit der Maus.
+- Die Ausgabe ist nur auf diesem PC erreichbar (127.0.0.1); andere Webseiten können sie nicht auslesen.
+
+## Profile und Tastenkürzel (Bereich „Einstellungen“)
+
+- **Profile** speichern Skin, Figura-Avatar sowie Tracking-, Körper- und Ausgabe-Einstellungen unter
+  einem Namen (z. B. „Stream“, „Discord“). Ein Profil kann beim Start automatisch geladen werden.
+- **Globale Tastenkürzel** wirken auch, wenn Minecraft im Vordergrund ist: Emotion festhalten,
+  Animation starten/stoppen, Aktion aus dem Figura-Aktionsrad, Skript-Taste, Ausgabefenster, neutrale
+  Pose, Profil laden. Tipp: Strg/Alt/Umschalt-Kombinationen oder F13–F24, damit im Spiel nichts fehlt.
 
 ## Projektstruktur
 
 ```
 src/core/      Plattformunabhängige Logik (PNG, Skin, Modell, Blockbench/Figura, Tracking, Rollen, Physik …)
 src/render/    Three.js-Darstellung (von App und später OBS-Viewer genutzt)
-src/renderer/  Oberfläche (Preact)
-src/main/      Electron-Hauptprozess (Fenster, Dateien, Figura-Import, Skin-Download, Netzwerk-Sperre)
+src/renderer/  Oberfläche (Preact) und Ausgabeseite für OBS (viewer.html)
+src/main/      Electron-Hauptprozess (Fenster, Dateien, Figura-Import, Skin-Download, Netzwerk-Sperre,
+               Ausgabe-Server, Profile, globale Tastenkürzel)
 src/preload/   Schmale, typisierte Brücke zwischen Oberfläche und Hauptprozess
 src/shared/    IPC-Verträge und Übersetzungen
 tests/         Unit-Tests und Testdaten

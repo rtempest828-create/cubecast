@@ -1,3 +1,4 @@
+import { parseCustomVariants, type StoredCustomVariants } from '../face/face-custom'
 import { isValidCellRect, type FaceLayout } from '../face/face-layout'
 import { walkParts, type AvatarModel, type PartNode } from '../model/avatar-model'
 import { PoseBuilder, type Pose } from '../pipeline/pose'
@@ -45,6 +46,8 @@ export interface FaceRigSettings {
   readonly swapSides: boolean
   /** Emotionen automatisch aus der Mimik erkennen. */
   readonly autoEmotion: boolean
+  /** Eigene Gesichtsvarianten aus dem Face-Editor. */
+  readonly custom?: StoredCustomVariants
 }
 
 export const DEFAULT_FACE_SETTINGS: FaceRigSettings = { enabled: true, layout: null, swapSides: false, autoEmotion: true }
@@ -286,7 +289,8 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
         enabled: face['enabled'] !== false,
         layout: parseLayout(face['layout']),
         swapSides: face['swapSides'] === true,
-        autoEmotion: face['autoEmotion'] !== false
+        autoEmotion: face['autoEmotion'] !== false,
+        ...(isRecord(face['custom']) ? { custom: parseCustomVariants(face['custom']) } : {})
       },
       cosmetics: parseCosmetics(value['cosmetics']),
       ...(Array.isArray(value['vanillaHidden']) ? { vanillaHidden: parseVanillaHidden(value['vanillaHidden']) } : {}),

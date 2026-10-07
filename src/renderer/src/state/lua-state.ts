@@ -252,6 +252,15 @@ export function scrollWheelAction(index: number, direction: number): void {
   refreshUi()
 }
 
+/** Taste eines Skripts kurz drücken (z. B. per globalem Tastenkürzel). */
+export function pressLuaKey(name: string): void {
+  guarded((r) => {
+    r.key(name, -1, true)
+    r.key(name, -1, false)
+  })
+  refreshUi()
+}
+
 export function sendChat(message: string): void {
   const text = message.trim().slice(0, 256)
   if (!text) return

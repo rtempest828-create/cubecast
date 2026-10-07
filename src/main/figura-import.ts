@@ -139,6 +139,11 @@ async function collectAvatars(dir: string, location: string, depth: number, out:
 export class FiguraRegistry {
   private readonly folders = new Map<string, { dir: string; location: string }>()
 
+  /** Ordner zu einem Schlüssel (für Profile). */
+  folderOf(key: string): { dir: string; location: string } | null {
+    return this.folders.get(key) ?? null
+  }
+
   register(dir: string, location: string): string {
     const key = figuraKey(dir)
     this.folders.set(key, { dir: resolve(dir), location })
