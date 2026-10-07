@@ -81,13 +81,37 @@ describe('Chibi-Proportionen', () => {
     expect(findPart(chibi.root, 'fig.World')!.pivot).toEqual([0, 40, 0])
   })
 
+  it('Figura-Gruppen unter der Modellwurzel folgen ebenfalls ihrem Parent-Type', () => {
+    const group = (name: string, figuraParent: string | undefined, pivotY: number, from: number, to: number, children: PartNode[] = []): PartNode => ({
+      id: `fig.${name}`, name, origin: 'bbmodel', ...(figuraParent ? { figuraParent } : {}), pivot: [0, pivotY, 0], rotation: [0, 0, 0], visible: true, children,
+      cubes: [{ id: `fig.${name}/c`, name: 'c', from: [-2, from, -2], to: [2, to, 2], inflate: 0, textureId: 'skin', layer: 'cutout', faces: {} }]
+    })
+    const wrapper: PartNode = {
+      id: 'figura.model', name: 'model', origin: 'bbmodel', pivot: [0, 0, 0], rotation: [0, 0, 0], visible: true, cubes: [],
+      children: [group('Head', 'Head', 24, 24, 32), group('RightLeg', 'RightLeg', 12, 0, 12), group('Deko', undefined, 20, 14, 18)]
+    }
+    const model: AvatarModel = { ...vanilla, root: { ...vanilla.root, children: [...vanilla.root.children, wrapper] } }
+    const { model: chibi } = applyChibi(model, on())
+    expect(yRange(chibi, 'fig.RightLeg')).toEqual(yRange(chibi, 'vanilla.rightLeg'))
+    expect(findPart(chibi.root, 'fig.Head')!.pivot).toEqual(findPart(chibi.root, 'vanilla.head')!.pivot)
+    const head = yRange(chibi, 'fig.Head')
+    expect(head[1] - head[0]).toBeCloseTo(12)
+    // Gruppe ohne Parent-Type bleibt beim Körper
+    const [decoMin, decoMax] = yRange(chibi, 'fig.Deko')
+    const body = yRange(chibi, 'vanilla.body')
+    expect(decoMin).toBeGreaterThanOrEqual(body[0])
+    expect(decoMax).toBeLessThanOrEqual(body[1])
+  })
+
   it('Einzelanpassung: Faktor, Versatz und Drehpunkt pro Teil', () => {
     const plain = applyChibi(vanilla, on())
     const adjusted = applyChibi(vanilla, on({ parts: { 'vanilla.leftArm': { scale: [1, 2, 1], offset: [0, 1, 0], pivot: [0, -1, 0] } } }))
     const before = findPart(plain.model.root, 'vanilla.leftArm')!
     const after = findPart(adjusted.model.root, 'vanilla.leftArm')!
     expect(after.pivot[1]).toBeCloseTo(before.pivot[1] + 1 - 1)
-    expect(adjusted.partScale.get('vanilla.leftArm')![1]).toBeCloseTo(plain.partScale.get('vanilla.leftArm')![1] * 2)
+    // Verschiebungen wirken im Raum des Elternteils: eigener Faktor zählt nicht, für Kinder aber schon
+    expect(adjusted.partScale.get('vanilla.leftArm')).toEqual(plain.partScale.get('vanilla.leftArm'))
+    expect(adjusted.partScale.get('vanilla.leftSleeve')![1]).toBeCloseTo(plain.partScale.get('vanilla.leftSleeve')![1] * 2)
   })
 
   it('gespeicherte Einstellungen werden robust gelesen', () => {

@@ -1,7 +1,7 @@
 import { effect, signal } from '@preact/signals'
 import { LuaFactory } from 'wasmoon'
 import luaWasmUrl from 'wasmoon/dist/glue.wasm?url'
-import { keyFromBrowser } from '@core/lua/apply-lua'
+import { glfwCodeOf, keyFromBrowser } from '@core/lua/apply-lua'
 import { FiguraLuaRuntime, LuaError, type LuaPartPose, type LuaStats, type PlayerState, type WheelState } from '@core/lua/figura-runtime'
 import { logger } from '@core/log/logger'
 import type { Signals } from '@core/tracking/signals'
@@ -256,8 +256,9 @@ export function scrollWheelAction(index: number, direction: number): void {
 /** Taste eines Skripts kurz drücken (z. B. per globalem Tastenkürzel). */
 export function pressLuaKey(name: string): void {
   guarded((r) => {
-    r.key(name, -1, true)
-    r.key(name, -1, false)
+    const code = glfwCodeOf(name)
+    r.key(name, code, true)
+    r.key(name, code, false)
   })
   refreshUi()
 }

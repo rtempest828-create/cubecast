@@ -57,6 +57,7 @@ export interface HotkeyBinding {
 
 export interface HotkeyResult {
   readonly id: string
+  readonly accelerator: string
   readonly ok: boolean
 }
 

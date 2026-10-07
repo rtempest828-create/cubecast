@@ -37,6 +37,8 @@ effect(() => headTracker.setSettings(trackingSettings.value))
 
 const smoother = new DriverSmoother()
 const physics = new PhysicsSystem()
+/** Modell des letzten Bildes – bei einem Neuaufbau (Chibi, Skin, Avatar) springen Drehpunkte. */
+let lastModel: unknown = null
 const triggerMemory: TriggerMemory = new Map()
 const armTracker = new ArmTracker()
 let lastPoseFrame = -1
@@ -107,6 +109,11 @@ export function attachRuntime(viewport: Viewport): () => void {
       if (nowMs - lastPoseTime < 300) armTargets = lastArmTargets
     }
     const arms = armTracker.update(armTargets, nowMs / 1000, dt)
+    if (model !== lastModel) {
+      // Sprung der Drehpunkte wäre für die Physik eine riesige Beschleunigung.
+      physics.reset()
+      lastModel = model
+    }
     applyBody(builder, model, currentRig, body, { timeSec: nowMs / 1000, signals, arms })
     // Lua-Skripte (TICK/RENDER) des Figura-Avatars
     const partScale = chibiResult.peek().partScale

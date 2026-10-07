@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, open, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { PROFILE_NAME_PATTERN, type ProfileSummary } from '../shared/ipc'
 
@@ -40,10 +40,29 @@ export class ProfileStore {
     }
     const out: ProfileSummary[] = []
     for (const file of files.slice(0, 500)) {
-      const profile = await this.read(join(this.directory, file))
-      if (profile) out.push({ name: profile.name, updated: profile.updated })
+      const summary = (await this.readHeader(join(this.directory, file))) ?? (await this.read(join(this.directory, file)))
+      if (summary) out.push({ name: summary.name, updated: summary.updated })
     }
     return out.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /** Name und Datum stehen am Anfang der Datei – ohne das ganze Profil (mit Skin) zu lesen. */
+  private async readHeader(path: string): Promise<ProfileSummary | null> {
+    let handle
+    try {
+      handle = await open(path, 'r')
+      const buffer = Buffer.alloc(1024)
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0)
+      const head = buffer.subarray(0, bytesRead).toString('utf8')
+      const match = /^\{"version":1,"name":("(?:[^"\\]|\\.)*"),"updated":"([^"]*)"/.exec(head)
+      if (!match) return null
+      const name: unknown = JSON.parse(match[1]!)
+      return isValidProfileName(name) ? { name, updated: match[2]! } : null
+    } catch {
+      return null
+    } finally {
+      await handle?.close()
+    }
   }
 
   private async read(path: string): Promise<StoredProfile | null> {

@@ -129,6 +129,21 @@ export function updateChibi(patch: Partial<ChibiSettings>): void {
   updateRig({ ...rig.peek(), chibi: next })
 }
 
+let chibiTimer: ReturnType<typeof setTimeout> | null = null
+let chibiPending: Partial<ChibiSettings> = {}
+
+/** Wie `updateChibi`, aber gebündelt (für Regler, die beim Ziehen viele Werte liefern). */
+export function updateChibiSoon(patch: Partial<ChibiSettings>): void {
+  chibiPending = { ...chibiPending, ...patch }
+  if (chibiTimer) return
+  chibiTimer = setTimeout(() => {
+    chibiTimer = null
+    const pending = chibiPending
+    chibiPending = {}
+    updateChibi(pending)
+  }, 80)
+}
+
 export function toggleChibi(): void {
   updateChibi({ enabled: !chibiSettings.peek().enabled })
 }

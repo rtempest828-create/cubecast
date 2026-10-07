@@ -6,7 +6,7 @@ import { t } from '@shared/i18n'
 import { Slider } from '../components/Slider'
 import { baseAvatarModel, chibiSettings } from '../state/app-state'
 import { debugMode, selection } from '../state/debug-state'
-import { updateChibi } from '../state/rig-state'
+import { updateChibi, updateChibiSoon } from '../state/rig-state'
 
 const factor = (v: number): string => t('unit.factor', { value: v.toFixed(2) })
 const NO_ADJUST: ChibiPartAdjust = { scale: [1, 1, 1], offset: [0, 0, 0], pivot: [0, 0, 0] }
@@ -19,7 +19,7 @@ function PartAdjust(): JSX.Element | null {
   const part = findPart(baseAvatarModel.value.root, id)
   if (!part) return null
   const adjust = settings.parts[id] ?? NO_ADJUST
-  const set = (patch: Partial<ChibiPartAdjust>): void => updateChibi({ parts: { ...settings.parts, [id]: { ...adjust, ...patch } } })
+  const set = (patch: Partial<ChibiPartAdjust>): void => updateChibiSoon({ parts: { ...settings.parts, [id]: { ...adjust, ...patch } } })
   const axisSliders = (key: 'scale' | 'offset' | 'pivot', min: number, max: number, step: number): JSX.Element[] =>
     (['x', 'y', 'z'] as const).map((axis, i) => (
       <Slider
@@ -66,7 +66,7 @@ export function ChibiCard(): JSX.Element {
   const s = chibiSettings.value
   const presets: readonly ChibiPreset[] = ['kid', 'chibi', 'sd', 'custom']
   const modes: readonly ChibiTextureMode[] = ['resample', 'crop', 'scale']
-  const setSize = (patch: Partial<Record<'head' | 'body' | 'arms' | 'legs', number>>): void => updateChibi({ ...patch, preset: 'custom' })
+  const setSize = (patch: Partial<Record<'head' | 'body' | 'arms' | 'legs', number>>): void => updateChibiSoon({ ...patch, preset: 'custom' })
   return (
     <section class="card">
       <h2 class="card-title">{t('chibi.section')}</h2>

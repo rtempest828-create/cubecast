@@ -27,7 +27,7 @@ export function applyHotkeys(bindings: readonly HotkeyBinding[], onTrigger: (id:
   globalShortcut.unregisterAll()
   const used = new Set<string>()
   return bindings.map((binding) => {
-    if (used.has(binding.accelerator)) return { id: binding.id, ok: false }
+    if (used.has(binding.accelerator)) return { id: binding.id, accelerator: binding.accelerator, ok: false }
     let ok: boolean
     try {
       ok = globalShortcut.register(binding.accelerator, () => onTrigger(binding.id))
@@ -35,7 +35,7 @@ export function applyHotkeys(bindings: readonly HotkeyBinding[], onTrigger: (id:
       ok = false
     }
     if (ok) used.add(binding.accelerator)
-    return { id: binding.id, ok }
+    return { id: binding.id, accelerator: binding.accelerator, ok }
   })
 }
 

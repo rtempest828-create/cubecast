@@ -89,8 +89,6 @@ const apply = (t: Transform, p: Vec3): Vec3 => [
   t.anchor[2] + (p[2] - t.anchor[2]) * t.scale[2] + t.translate[2]
 ]
 
-const compose = (outer: Transform, inner: Transform): ((p: Vec3) => Vec3) => (p) => apply(outer, apply(inner, p))
-
 type PointMap = (p: Vec3) => Vec3
 
 function transformCube(cube: CubeDef, map: PointMap, scale: Vec3): CubeDef {
@@ -115,7 +113,21 @@ const mul3 = (a: Vec3, b: Vec3): Vec3 => [a[0] * b[0], a[1] * b[1], a[2] * b[2]]
  * Wendet eine Abbildung auf einen ganzen Teilbaum an. Einzelanpassungen (`parts`) wirken
  * zusätzlich um den (bereits verschobenen) Drehpunkt des jeweiligen Teils und vererben sich.
  */
-function transformTree(node: PartNode, map: PointMap, scale: Vec3, adjust: Readonly<Record<string, ChibiPartAdjust>>, scales: Map<string, Vec3>): PartNode {
+function transformTree(
+  node: PartNode,
+  inherited: { map: PointMap; scale: Vec3; region: Region },
+  layout: ChibiLayout,
+  adjust: Readonly<Record<string, ChibiPartAdjust>>,
+  scales: Map<string, Vec3>
+): PartNode {
+  // Teile mit Vanilla-ID oder Figura-Parent-Type gehören zu ihrem Körperbereich – egal wie tief sie
+  // liegen (Figura-Modelle hängen unter einer eigenen Wurzel). Alle Abbildungen sind absolut.
+  // Gleicher Bereich wie das Elternteil (z. B. Hut-Ebene im Kopf): Abbildung samt Feinanpassungen erben.
+  const explicit = explicitRegion(node)
+  const region = explicit ?? inherited.region
+  const own0 = explicit && explicit !== inherited.region ? layout.transforms[explicit] : null
+  const map = own0 ? (p: Vec3) => apply(own0, p) : inherited.map
+  const scale = own0 ? own0.scale : inherited.scale
   let localMap = map
   let localScale = scale
   let pivot = map(node.pivot)
@@ -128,7 +140,8 @@ function transformTree(node: PartNode, map: PointMap, scale: Vec3, adjust: Reado
     localScale = mul3(scale, own.scale)
     pivot = [center[0] + own.offset[0] + own.pivot[0], center[1] + own.offset[1] + own.pivot[1], center[2] + own.offset[2] + own.pivot[2]]
   }
-  scales.set(node.id, localScale)
+  // Verschiebungen eines Teils (Animation, Lua) wirken im Raum des Elternteils.
+  scales.set(node.id, scale)
   return {
     ...node,
     pivot,
@@ -137,15 +150,16 @@ function transformTree(node: PartNode, map: PointMap, scale: Vec3, adjust: Reado
       return transformCube(c, localMap, localScale)
     }),
     ...(node.meshes ? { meshes: node.meshes.map((m) => transformMesh(m, localMap)) } : {}),
-    children: node.children.map((child) => transformTree(child, localMap, localScale, adjust, scales))
+    children: node.children.map((child) => transformTree(child, { map: localMap, scale: localScale, region }, layout, adjust, scales))
   }
 }
 
 type Region = 'head' | 'body' | 'arms' | 'legs' | 'fixed'
 
-/** Zu welchem Körperbereich ein Teil an der Wurzel gehört (Vanilla-ID oder Figura-Parent-Type). */
-function regionOf(part: PartNode): Region {
-  const key = part.vanillaId ?? part.figuraParent ?? ''
+/** Körperbereich eines Teils mit Vanilla-ID oder Figura-Parent-Type (sonst null = vom Elternteil erben). */
+function explicitRegion(part: PartNode): Region | null {
+  const key = part.vanillaId ?? part.figuraParent
+  if (!key) return null
   if (key === 'head' || key === 'hat' || key === 'Head') return 'head'
   if (['rightArm', 'leftArm', 'rightSleeve', 'leftSleeve', 'LeftArm', 'RightArm'].includes(key)) return 'arms'
   if (['rightLeg', 'leftLeg', 'rightPants', 'leftPants', 'LeftLeg', 'RightLeg'].includes(key)) return 'legs'
@@ -204,10 +218,9 @@ export function applyChibi(model: AvatarModel, settings: ChibiSettings, skinText
   const scales = new Map<string, Vec3>()
   if (!settings.enabled) return { model, partScale: scales, layout }
 
-  const children = model.root.children.map((part) => {
-    const t = layout.transforms[regionOf(part)]
-    return transformTree(part, compose(t, IDENTITY), t.scale, settings.parts, scales)
-  })
+  // Teile ohne eigenen Bereich (z. B. Figura-Modellwurzel, Zubehör an der Wurzel) folgen dem Körper.
+  const body = layout.transforms.body
+  const children = model.root.children.map((part) => transformTree(part, { map: (p) => apply(body, p), scale: body.scale, region: 'body' }, layout, settings.parts, scales))
   let root: PartNode = { ...model.root, children }
 
   // Texturen: Vanilla-Arme/-Beine/-Körper pixeltreu kürzen (B oder A+), UVs anpassen.

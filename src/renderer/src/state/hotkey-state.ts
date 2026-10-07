@@ -35,8 +35,9 @@ effect(() => {
   saveSetting(STORAGE_KEY, bindings)
   if (!hasBridge()) return
   void window.vtuber.hotkeys.set(bindings).then((results) => {
+    const failedBefore = new Set(hotkeyResults.peek().filter((r) => !r.ok).map((r) => r.accelerator))
     hotkeyResults.value = results
-    if (results.some((r) => !r.ok)) pushToast('error', t('hotkeys.toast.taken'))
+    if (results.some((r) => !r.ok && !failedBefore.has(r.accelerator))) pushToast('error', t('hotkeys.toast.taken'))
   })
 })
 

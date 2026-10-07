@@ -106,7 +106,7 @@ function actionOptions(): { group: string; items: { id: string; label: string }[
 
 function HotkeyCard(): JSX.Element {
   const bindings = hotkeyBindings.value
-  const failed = new Set(hotkeyResults.value.filter((r) => !r.ok).map((r) => r.id))
+  const failed = new Set(hotkeyResults.value.filter((r) => !r.ok).map((r) => r.accelerator))
   const options = actionOptions()
   const [action, setAction] = useState('emotion:happy')
   const [accelerator, setAccelerator] = useState<string | null>(null)
@@ -118,10 +118,10 @@ function HotkeyCard(): JSX.Element {
       {bindings.length > 0 && (
         <ul class="hotkey-list">
           {bindings.map((b) => (
-            <li key={b.accelerator} class={failed.has(b.id) ? 'hotkey failed' : 'hotkey'}>
+            <li key={b.accelerator} class={failed.has(b.accelerator) ? 'hotkey failed' : 'hotkey'}>
               <kbd>{acceleratorLabel(b.accelerator)}</kbd>
               <span>{actionLabel(b.id)}</span>
-              {failed.has(b.id) && <span class="status-text error">{t('hotkeys.taken')}</span>}
+              {failed.has(b.accelerator) && <span class="status-text error">{t('hotkeys.taken')}</span>}
               <button type="button" class="button" onClick={() => removeHotkey(b.accelerator)}>
                 {t('hotkeys.remove')}
               </button>

@@ -3,6 +3,7 @@ import { join, relative, sep } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { LuaFactory } from 'wasmoon'
 import { crossedTimeline } from '@core/animation/player'
+import { glfwCodeOf, keyFromBrowser } from '@core/lua/apply-lua'
 import { loadFiguraAvatar, type FiguraFile } from '@core/figura/figura-avatar'
 import { FiguraLuaRuntime, LuaError, type LuaLimits } from '@core/lua/figura-runtime'
 import { encodePng } from '../helpers/png-encode'
@@ -312,6 +313,16 @@ describe('Figura-API', () => {
     runtime.init()
     runtime.timeline('zaehler = zaehler + 1 print("timeline", zaehler)')
     expect(printed(log)).toEqual(['timeline\t1'])
+  })
+})
+
+describe('Tastencodes', () => {
+  it('Minecraft-Tastennamen und GLFW-Codes passen in beide Richtungen', () => {
+    for (const code of ['KeyB', 'Digit7', 'F5', 'Space', 'ShiftLeft', 'ArrowUp', 'Numpad3']) {
+      const key = keyFromBrowser(code)!
+      expect(glfwCodeOf(key.name)).toBe(key.glfw)
+    }
+    expect(glfwCodeOf('key.keyboard.gibtsnicht')).toBe(-1)
   })
 })
 

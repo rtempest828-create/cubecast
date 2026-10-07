@@ -5,10 +5,10 @@ import { t } from '@shared/i18n'
 import type { ProfileSummary } from '@shared/ipc'
 import { loadFigura, unloadFigura } from '../figura/figura-loader'
 import { loadedFigura, loadedSkin, modelChoice, pushToast, showOuterLayer, type ModelChoice, type SkinSource } from './app-state'
-import { bodyState } from './body-state'
-import { outputSettings, outputWindowSettings } from './output-state'
+import { bodyState, validateBodyState } from './body-state'
+import { outputSettings, outputWindowSettings, validateOutputWindowSettings } from './output-state'
 import { isRecord, loadSetting, saveSetting } from './persist'
-import { trackingSettings } from './tracking-state'
+import { trackingSettings, validateTrackingSettings } from './tracking-state'
 
 /**
  * Profile: Skin, Figura-Avatar und alle Einstellungen (Tracking, Körper, Ausgabe) unter einem
@@ -92,10 +92,13 @@ export async function loadProfile(name: string): Promise<boolean> {
   if (['auto', 'classic', 'slim'].includes(String(data['modelChoice']))) modelChoice.value = data['modelChoice'] as ModelChoice
   if (typeof data['showOuterLayer'] === 'boolean') showOuterLayer.value = data['showOuterLayer']
   // Einstellungen über ihre Prüffunktionen übernehmen (unbekannte Felder fallen weg).
-  if (isRecord(data['tracking'])) trackingSettings.value = { ...trackingSettings.peek(), ...pick(trackingSettings.peek(), data['tracking']) }
-  if (isRecord(data['body'])) bodyState.value = { ...bodyState.peek(), ...pick(bodyState.peek(), data['body']) }
+  const tracking = validateTrackingSettings(data['tracking'])
+  if (tracking) trackingSettings.value = tracking
+  const body = validateBodyState(data['body'])
+  if (body) bodyState.value = body
   if (isRecord(data['output'])) outputSettings.value = parseOutputSettings(data['output'])
-  if (isRecord(data['outputWindow'])) outputWindowSettings.value = { ...outputWindowSettings.peek(), ...pick(outputWindowSettings.peek(), data['outputWindow']) }
+  const outputWindow = validateOutputWindowSettings(data['outputWindow'])
+  if (outputWindow) outputWindowSettings.value = outputWindow
 
   const figura = data['figura']
   if (isRecord(figura) && typeof figura['key'] === 'string') await loadFigura(figura['key'])
@@ -104,16 +107,6 @@ export async function loadProfile(name: string): Promise<boolean> {
   currentProfile.value = name
   pushToast(problems === 0 ? 'success' : 'error', t(problems === 0 ? 'profile.toast.loaded' : 'profile.toast.partial', { name }))
   return true
-}
-
-/** Übernimmt nur Felder, die es im aktuellen Zustand gibt und die denselben Typ haben. */
-function pick<T extends object>(current: T, incoming: Record<string, unknown>): Partial<T> {
-  const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(current)) {
-    const next = incoming[key]
-    if (next !== undefined && typeof next === typeof value && (typeof next !== 'number' || Number.isFinite(next))) out[key] = next
-  }
-  return out as Partial<T>
 }
 
 export async function removeProfile(name: string): Promise<void> {

@@ -155,6 +155,10 @@ describe('Profile', () => {
     expect(await store.save('Stream', { a: 1 }, new Date('2026-10-07T12:00:00Z'))).toBe(true)
     expect(await store.save('../x', { a: 1 })).toBe(false)
     expect(await store.list()).toEqual([{ name: 'Stream', updated: '2026-10-07T12:00:00.000Z' }])
+    // Großes Profil: Liste liest nur den Dateianfang, Namen mit Sonderzeichen funktionieren
+    expect(await store.save('Äpfel & Birnen', { skin: 'x'.repeat(2_000_000) }, new Date('2026-10-07T13:00:00Z'))).toBe(true)
+    expect((await store.list()).map((p) => p.name)).toEqual(['Äpfel & Birnen', 'Stream'])
+    await store.remove('Äpfel & Birnen')
     expect(await store.load('Stream')).toEqual({ a: 1 })
     expect(await store.load('Gibtsnicht')).toBeNull()
     expect(await store.remove('Stream')).toBe(true)

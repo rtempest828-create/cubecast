@@ -33,7 +33,9 @@ const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
 export function App(): JSX.Element {
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
-      if (event.ctrlKey && !event.altKey && event.code === 'KeyK') {
+      const target = event.target
+      const typing = target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
+      if (event.ctrlKey && !event.altKey && event.code === 'KeyK' && !typing) {
         event.preventDefault()
         toggleChibi()
       } else if (event.key === 'F12') {

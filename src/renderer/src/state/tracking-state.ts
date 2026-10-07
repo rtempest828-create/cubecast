@@ -13,7 +13,7 @@ export interface TrackingSettings extends HeadTrackerSettings {
 const STORAGE_KEY = 'vtuber.tracking'
 const DEFAULTS: TrackingSettings = { ...DEFAULT_HEAD_SETTINGS, deviceId: null }
 
-function validate(value: unknown): TrackingSettings | null {
+export function validateTrackingSettings(value: unknown): TrackingSettings | null {
   if (!isRecord(value)) return null
   return {
     deviceId: typeof value['deviceId'] === 'string' ? value['deviceId'] : null,
@@ -24,7 +24,7 @@ function validate(value: unknown): TrackingSettings | null {
   }
 }
 
-export const trackingSettings = signal<TrackingSettings>(loadSetting(STORAGE_KEY, DEFAULTS, validate))
+export const trackingSettings = signal<TrackingSettings>(loadSetting(STORAGE_KEY, DEFAULTS, validateTrackingSettings))
 effect(() => saveSetting(STORAGE_KEY, trackingSettings.value))
 
 export function updateTrackingSettings(patch: Partial<TrackingSettings>): void {

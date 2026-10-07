@@ -21,11 +21,11 @@ const SETTINGS_KEY = 'vtuber.output'
 const WINDOW_KEY = 'vtuber.outputWindow'
 
 export const outputSettings = signal<OutputSettings>(loadSetting(SETTINGS_KEY, DEFAULT_OUTPUT_SETTINGS, (v) => parseOutputSettings(v)))
-export const outputWindowSettings = signal<OutputWindowSettings>(
-  loadSetting(WINDOW_KEY, { width: 720, height: 720, alwaysOnTop: false }, (v) =>
-    isRecord(v) ? { width: numberIn(v['width'], 160, 3840, 720), height: numberIn(v['height'], 160, 3840, 720), alwaysOnTop: v['alwaysOnTop'] === true } : null
-  )
-)
+export function validateOutputWindowSettings(v: unknown): OutputWindowSettings | null {
+  return isRecord(v) ? { width: numberIn(v['width'], 160, 3840, 720), height: numberIn(v['height'], 160, 3840, 720), alwaysOnTop: v['alwaysOnTop'] === true } : null
+}
+
+export const outputWindowSettings = signal<OutputWindowSettings>(loadSetting(WINDOW_KEY, { width: 720, height: 720, alwaysOnTop: false }, validateOutputWindowSettings))
 export const outputStatus = signal<OutputStatus>({ running: false, url: '', clients: 0, windowOpen: false })
 
 const hasBridge = (): boolean => typeof window !== 'undefined' && 'vtuber' in window
@@ -50,9 +50,15 @@ effect(() => {
 effect(() => saveSetting(WINDOW_KEY, outputWindowSettings.value))
 
 // Neues Modell → an die Ausgabe (auch ohne verbundene Ausgabe; der Server merkt es sich für später).
+// Gebündelt, damit schnelle Änderungen (Regler ziehen) nicht jedes Mal alle Texturen übertragen.
+let modelTimer: ReturnType<typeof setTimeout> | null = null
 effect(() => {
   const model = avatarModel.value
-  send({ type: 'model', model: serializeModel(model) })
+  if (modelTimer) clearTimeout(modelTimer)
+  modelTimer = setTimeout(() => {
+    modelTimer = null
+    send({ type: 'model', model: serializeModel(model) })
+  }, 150)
 })
 
 if (hasBridge()) {

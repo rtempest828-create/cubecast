@@ -27,7 +27,7 @@ const DEFAULTS: BodyState = {
   micGateDb: DEFAULT_LIPSYNC_SETTINGS.gateDb
 }
 
-function validate(value: unknown): BodyState | null {
+export function validateBodyState(value: unknown): BodyState | null {
   if (!isRecord(value)) return null
   const bool = (key: keyof BodyState, fallback: boolean): boolean => (typeof value[key] === 'boolean' ? (value[key] as boolean) : fallback)
   return {
@@ -44,7 +44,7 @@ function validate(value: unknown): BodyState | null {
   }
 }
 
-export const bodyState = signal<BodyState>(loadSetting(STORAGE_KEY, DEFAULTS, validate))
+export const bodyState = signal<BodyState>(loadSetting(STORAGE_KEY, DEFAULTS, validateBodyState))
 effect(() => saveSetting(STORAGE_KEY, bodyState.value))
 
 export function updateBodyState(patch: Partial<BodyState>): void {
