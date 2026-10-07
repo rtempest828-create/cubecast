@@ -1,4 +1,6 @@
-# Minecraft VTuber
+# CubeCast
+
+**Minecraft-Skins und Figura-Avatare als VTuber** – Webcam-Face-Tracking, Animationen, Lua und OBS-Ausgabe.
 
 Windows-Desktop-App, die einen Minecraft-Skin oder Figura-Avatar als blockiges 3D-Modell
 darstellt und per Webcam-Face-Tracking steuert – zum Streamen mit OBS oder für Discord.
@@ -12,7 +14,7 @@ Alles läuft lokal, ohne Konto und ohne Cloud.
 
 ## Installation
 
-**Als Programm:** `Minecraft-VTuber-Setup-<Version>.exe` ausführen (Erstellung siehe „Installer bauen“).
+**Als Programm:** `CubeCast-Setup-<Version>.exe` ausführen (Erstellung siehe „Installer bauen“).
 Windows warnt eventuell, weil das Programm nicht signiert ist („Weitere Informationen“ → „Trotzdem ausführen“).
 
 **Aus dem Quellcode:** Voraussetzungen Windows 10/11, [Node.js](https://nodejs.org/) 20 oder neuer.
@@ -42,7 +44,7 @@ npm run build
 npm start
 ```
 
-Installer bauen (ergibt `dist/Minecraft-VTuber-Setup-<Version>.exe`):
+Installer bauen (ergibt `dist/CubeCast-Setup-<Version>.exe`):
 
 ```bash
 npm run dist
@@ -214,7 +216,7 @@ lässt es sich nachrüsten.
 | Log | Warnungen und Fehler mit Uhrzeit. |
 
 Die Zuordnung wird **pro Avatar** automatisch als JSON gespeichert
-(`%APPDATA%\minecraft-vtuber\avatars\`), die Skin-/Avatar-Dateien selbst werden nie verändert.
+(`%APPDATA%\CubeCast\avatars\`), die Skin-/Avatar-Dateien selbst werden nie verändert.
 
 ## Bekannte Einschränkungen
 

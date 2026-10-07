@@ -3,7 +3,7 @@
  * `index.ts` registrieren. Platzhalter in geschweiften Klammern, z. B. {name}.
  */
 export const de = {
-  'app.title': 'Minecraft VTuber',
+  'app.title': 'CubeCast',
 
   'tab.model': 'Modell',
   'tab.tracking': 'Tracking',

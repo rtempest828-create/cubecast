@@ -26,7 +26,7 @@ export class OutputWindow {
       width,
       height,
       useContentSize: true,
-      title: 'Minecraft VTuber – Ausgabe',
+      title: 'CubeCast – Ausgabe',
       transparent: true,
       frame: false,
       resizable: false,

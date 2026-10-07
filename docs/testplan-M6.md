@@ -14,7 +14,7 @@ Start: `npm run dev` bzw. gebaute/installierte App.
 | 6 | 3D-Ansicht in der App drehen, „Aktuelle 3D-Ansicht übernehmen“ | OBS zeigt genau diese Ansicht („Eigene Ansicht“) |
 | 7 | Anderen Skin / Figura-Avatar laden | OBS zeigt das neue Modell |
 | 8 | OBS-Quelle neu laden während die App läuft | Bild ist sofort wieder da |
-| 9 | App schließen | OBS zeigt „Warte auf Minecraft VTuber …“; nach Neustart der App wieder das Bild |
+| 9 | App schließen | OBS zeigt „Warte auf CubeCast …“; nach Neustart der App wieder das Bild |
 | 10 | Adresse in einem normalen Browser auf einem anderen PC im Netzwerk aufrufen | nicht erreichbar |
 | 11 | „Fenster öffnen“ (720 × 720) | Rahmenloses, durchsichtiges Fenster mit der Figur; mit der Maus verschiebbar |
 | 12 | „Immer im Vordergrund“ + „Größe übernehmen“ | Fenster bleibt über anderen Fenstern, neue Größe |
@@ -46,6 +46,6 @@ Start: `npm run dev` bzw. gebaute/installierte App.
 
 | # | Schritt | Erwartung |
 |---|---|---|
-| 26 | `npm run dist` | `dist/Minecraft-VTuber-Setup-0.1.0.exe` entsteht |
+| 26 | `npm run dist` | `dist/CubeCast-Setup-0.1.0.exe` entsteht |
 | 27 | Installieren (Ordner wählbar), Startmenü-Verknüpfung starten | App startet, Beispiel-Avatar in der Figura-Liste, Kamera/Tracking funktionieren |
-| 28 | Deinstallieren über Windows-Einstellungen | App entfernt; Einstellungen in `%APPDATA%\minecraft-vtuber` bleiben |
+| 28 | Deinstallieren über Windows-Einstellungen | App entfernt; Einstellungen in `%APPDATA%\CubeCast` bleiben |

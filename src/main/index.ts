@@ -1,3 +1,4 @@
+import { existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, BrowserWindow, session } from 'electron'
 import { t } from '../shared/i18n'
@@ -15,6 +16,23 @@ const devServerUrl = process.env['ELECTRON_RENDERER_URL']
 const appUrl = devServerUrl ?? APP_ENTRY_URL
 
 registerAppScheme()
+useDataFolder()
+
+/**
+ * Datenordner „%APPDATA%\CubeCast“. Frühere Versionen hießen „minecraft-vtuber“ –
+ * deren Einstellungen (Zuordnungen, Profile, localStorage) werden einmalig übernommen.
+ */
+function useDataFolder(): void {
+  const appData = app.getPath('appData')
+  const target = join(appData, 'CubeCast')
+  const legacy = join(appData, 'minecraft-vtuber')
+  try {
+    if (!existsSync(target) && existsSync(legacy)) renameSync(legacy, target)
+  } catch (error) {
+    console.warn('[Daten] Alter Datenordner konnte nicht übernommen werden:', error)
+  }
+  app.setPath('userData', target)
+}
 
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({

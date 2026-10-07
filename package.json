@@ -1,5 +1,5 @@
 {
-  "name": "minecraft-vtuber",
+  "name": "cubecast",
   "version": "0.1.0",
   "private": true,
   "description": "Minecraft-Skin und Figura-Avatar als blockiges VTuber-Modell mit Face-Tracking",
@@ -35,8 +35,8 @@
     "vitest": "^5.0.3"
   },
   "build": {
-    "appId": "de.minecraftvtuber.app",
-    "productName": "Minecraft VTuber",
+    "appId": "de.cubecast.app",
+    "productName": "CubeCast",
     "directories": {
       "output": "dist"
     },
@@ -54,14 +54,14 @@
           ]
         }
       ],
-      "artifactName": "Minecraft-VTuber-Setup-${version}.${ext}"
+      "artifactName": "CubeCast-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Minecraft VTuber",
-      "uninstallDisplayName": "Minecraft VTuber"
+      "shortcutName": "CubeCast",
+      "uninstallDisplayName": "CubeCast"
     }
   }
 }

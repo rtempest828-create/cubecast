@@ -112,7 +112,7 @@ function connect(): void {
   events.onopen = () => (status.hidden = true)
   events.onerror = () => {
     status.hidden = false
-    status.textContent = 'Warte auf Minecraft VTuber …'
+    status.textContent = 'Warte auf CubeCast …'
   }
   events.onmessage = (event: MessageEvent<string>) => {
     try {
