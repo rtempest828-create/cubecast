@@ -1,4 +1,4 @@
-import { AmbientLight, Color, DirectionalLight, PerspectiveCamera, Raycaster, Scene, Vector2, WebGLRenderer } from 'three'
+import { AmbientLight, Box3, Color, DirectionalLight, PerspectiveCamera, Raycaster, Scene, Vector2, WebGLRenderer } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { CellRect } from '../core/face/face-layout'
 import type { RgbaImage } from '../core/image/rgba-image'
@@ -131,6 +131,18 @@ export class Viewport {
     const p = this.camera.position
     const t = this.controls.target
     return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z], fov: this.camera.fov }
+  }
+
+  /** Bildmitte auf die Figur legen (z. B. nach dem Umschalten in den Chibi-Modus); Abstand bleibt. */
+  focusAvatar(): void {
+    if (!this.avatar) return
+    const box = new Box3().setFromObject(this.avatar.root)
+    if (box.isEmpty()) return
+    const centerY = (box.min.y + box.max.y) / 2
+    const dy = centerY - this.controls.target.y
+    this.controls.target.y += dy
+    this.camera.position.y += dy
+    this.controls.update()
   }
 
   /** Kamera auf die Standardansicht zurücksetzen. */

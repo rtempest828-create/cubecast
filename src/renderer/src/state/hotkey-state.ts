@@ -9,7 +9,7 @@ import { clickWheelAction, pressLuaKey } from './lua-state'
 import { toggleOutputWindow } from './output-state'
 import { isRecord, loadSetting, saveSetting } from './persist'
 import { loadProfile } from './profile-state'
-import { manualEmotion } from './rig-state'
+import { manualEmotion, toggleChibi } from './rig-state'
 
 /**
  * Globale Tastenkürzel: wirken auch, wenn ein anderes Programm (z. B. Minecraft) aktiv ist.
@@ -103,6 +103,8 @@ export function actionLabel(id: string): string {
       return t('hotkeys.action.neutral')
     case 'profile':
       return t('hotkeys.action.profile', { name: value })
+    case 'chibi':
+      return t('hotkeys.action.chibi')
     default:
       return id
   }
@@ -134,6 +136,9 @@ function runAction(id: string): void {
       break
     case 'profile':
       void loadProfile(value)
+      break
+    case 'chibi':
+      toggleChibi()
       break
   }
 }

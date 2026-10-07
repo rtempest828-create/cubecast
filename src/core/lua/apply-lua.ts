@@ -4,6 +4,8 @@ import type { LuaPartPose } from './figura-runtime'
 export interface ApplyLuaOptions {
   /** Der Nutzer hat die Vanilla-Teile selbst festgelegt – Lua-Sichtbarkeit dafür ignorieren. */
   readonly ignoreVanillaVisibility: boolean
+  /** Faktor für Verschiebungen pro Teil (Chibi-Modus). */
+  readonly positionScale?: (partId: string) => readonly [number, number, number] | undefined
 }
 
 /**
@@ -20,9 +22,10 @@ export function applyLuaPoses(pose: PoseBuilder, poses: readonly LuaPartPose[], 
       part.rotation[0] += p.rotation[0]
       part.rotation[1] += p.rotation[1]
       part.rotation[2] += p.rotation[2]
-      part.position[0] += p.position[0]
-      part.position[1] += p.position[1]
-      part.position[2] += p.position[2]
+      const k = options.positionScale?.(p.partId) ?? [1, 1, 1]
+      part.position[0] += p.position[0] * k[0]
+      part.position[1] += p.position[1] * k[1]
+      part.position[2] += p.position[2] * k[2]
       part.scale[0] *= p.scale[0]
       part.scale[1] *= p.scale[1]
       part.scale[2] *= p.scale[2]

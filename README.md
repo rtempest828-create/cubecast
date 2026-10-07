@@ -8,7 +8,7 @@ Alles läuft lokal, ohne Konto und ohne Cloud.
 > Körper-Mitbewegung und Leerlauf, Physik, Arm-Tracking, Mikrofon-Lip-Sync, Figura-Avatare mit
 > Blockbench-Animationen und Lua-Skripten, OBS-Ausgabe mit transparentem Hintergrund, Ausgabefenster,
 > Kamera-Presets, Profile, globale Tastenkürzel, Face-Editor und Windows-Installer.
-> Als Nächstes: Chibi-Modus (M3b, siehe [docs/spec-M3b-chibi.md](docs/spec-M3b-chibi.md)).
+> Dazu der Chibi-Modus (M3b, [docs/spec-M3b-chibi.md](docs/spec-M3b-chibi.md)).
 
 ## Installation
 
@@ -117,6 +117,21 @@ und HD-Skins (128×128, 256×256 …).
 - Kopfdrehung aus dem Tracking addiert sich zu dem, was das Skript tut; blendet die Mimik eine
   Ausdrucks-Gruppe ein (z. B. „Augen zu“), hat das Vorrang vor dem Skript.
 - Was genau unterstützt wird: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
+### Chibi-Modus (Bereich „Modell“)
+
+- **Strg+K** (oder Schalter in der Karte „Chibi-Modus“, auch als globales Tastenkürzel) schaltet zwischen
+  normaler und Chibi-Version um. Die 3D-Ansicht und die OBS-Ausgabe passen den Bildausschnitt an.
+- Stufen **Kind**, **Chibi**, **Super-Deformed** oder eigene Werte für Kopf, Körper, Arme und Beine.
+- Teile bleiben verbunden; Zubehör und Figura-Gruppen wachsen bzw. schrumpfen mit dem Körperteil, an dem
+  sie hängen (Parent-Types). Das 8 × 8-Gesicht bleibt 1:1 und wird mit dem Kopf größer.
+- **Skin-Textur:** *pixeltreu neu rechnen* (Standard, scharfe Pixel, dünne Linien können wegfallen),
+  *Mitte weglassen* (Schultern/Hände/Füße bleiben vollständig) oder *nur stauchen*.
+- Tracking, Physik, Animationen und Lua laufen weiter; Verschiebungen aus Animationen und Skripten werden
+  mitskaliert. Skripte können mit `vtuber.isChibi()` reagieren.
+- **Feinanpassung:** Im Debug-Modus (F12) ein Teil anklicken, dann in „Feinanpassung einzelner Teile“
+  Größe, Versatz und Drehpunkt ändern (z. B. für Zubehör ohne Parent-Type).
+- Gespeichert pro Avatar zusammen mit der Rollen-Zuordnung; Skin- und Figura-Dateien bleiben unverändert.
 
 ### Modelltyp
 

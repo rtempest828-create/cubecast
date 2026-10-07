@@ -22,7 +22,7 @@ import { trackingClient, trackingDebug, trackingSettings } from '../state/tracki
 import { animationClips, animationPlayer, publishAnimationStatus, settingsOf } from '../state/animation-state'
 import { runTimeline, stepLua } from '../state/lua-state'
 import { publishPose, publishTexture } from '../state/output-state'
-import { vanillaOverride } from '../state/app-state'
+import { chibiResult, chibiSkinTransform, vanillaOverride } from '../state/app-state'
 
 /**
  * Laufzeit pro Frame:
@@ -109,15 +109,17 @@ export function attachRuntime(viewport: Viewport): () => void {
     const arms = armTracker.update(armTargets, nowMs / 1000, dt)
     applyBody(builder, model, currentRig, body, { timeSec: nowMs / 1000, signals, arms })
     // Lua-Skripte (TICK/RENDER) des Figura-Avatars
+    const partScale = chibiResult.peek().partScale
+    const positionScale = partScale.size > 0 ? (id: string) => partScale.get(id) : undefined
     const luaPoses = stepLua(dt, signals, nowMs)
-    if (luaPoses.length > 0) applyLuaPoses(builder, luaPoses, { ignoreVanillaVisibility: vanillaOverride.peek() !== null })
+    if (luaPoses.length > 0) applyLuaPoses(builder, luaPoses, { ignoreVanillaVisibility: vanillaOverride.peek() !== null, positionScale })
     // Blockbench-Animationen (nach Lua, vor der Physik – Ohren und Schweif reagieren darauf)
     const clips = animationClips.peek()
     if (clips.length > 0) {
       evaluateTriggers(animationPlayer, clips, settingsOf, signals, triggerMemory)
       const fired = animationPlayer.update(dt, clips, settingsOf)
       if (fired.length > 0) runTimeline(fired.map((f) => f.script))
-      animationPlayer.apply(builder, clips, settingsOf, nowMs / 1000)
+      animationPlayer.apply(builder, clips, settingsOf, nowMs / 1000, positionScale)
     }
     physics.step(model, currentRig, builder, dt, nowMs / 1000, { enabled: body.physicsEnabled, strength: body.physicsStrength })
     const pose = new Map(builder.build())
@@ -158,7 +160,7 @@ export function attachRuntime(viewport: Viewport): () => void {
     const textureKey = `${viewport.avatarVersion}|${useCleared}`
     if (textureKey !== skinTextureKey || skinTextureSource !== source) {
       const skin = loadedSkin.peek().skin
-      const skinImage = useCleared && source.skinWithoutHatFront ? source.skinWithoutHatFront : skin.image
+      const skinImage = chibiSkinTransform.peek()(useCleared && source.skinWithoutHatFront ? source.skinWithoutHatFront : skin.image)
       viewport.updateTexture(SKIN_TEXTURE_ID, skinImage)
       publishTexture(SKIN_TEXTURE_ID, skinImage)
       skinTextureKey = textureKey

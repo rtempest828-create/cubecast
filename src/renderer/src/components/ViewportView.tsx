@@ -8,7 +8,7 @@ import { Viewport } from '@render/viewport'
 import { t } from '@shared/i18n'
 import { DebugHud } from '../debug/DebugHud'
 import { attachRuntime } from '../runtime/runtime'
-import { avatarModel, pushToast, showOuterLayer } from '../state/app-state'
+import { avatarModel, chibiSettings, pushToast, showOuterLayer } from '../state/app-state'
 import { clearSelection, debugHidden, debugMode, debugOptions, selectCube, selection, selectPart, soloParts } from '../state/debug-state'
 import { setCameraProvider } from '../state/output-state'
 import { faceLayout, faceVariants } from '../state/rig-state'
@@ -76,6 +76,11 @@ export function ViewportView(): JSX.Element {
     }
     const stops = [
       effect(() => viewport.setAvatar(avatarModel.value)),
+      // Beim Umschalten Normal/Chibi die Kamera auf die neue Größe ausrichten.
+      effect(() => {
+        void chibiSettings.value.enabled
+        queueMicrotask(() => viewport.focusAvatar())
+      }),
       effect(() => viewport.setOuterLayerVisible(showOuterLayer.value)),
       effect(() => {
         const active = debugMode.value

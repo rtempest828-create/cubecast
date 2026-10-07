@@ -1,7 +1,10 @@
 import { computed, signal } from '@preact/signals'
 import type { FiguraAvatar } from '@core/figura/figura-avatar'
 import type { VanillaId } from '@core/figura/vanilla-scan'
+import { applyChibi, chibiSkinPlan, DEFAULT_CHIBI, resampleSkin, type ChibiSettings } from '@core/chibi/chibi'
+import type { RgbaImage } from '@core/image/rgba-image'
 import { buildAvatarModel } from '@core/model/build-avatar'
+import { SKIN_TEXTURE_ID } from '@core/model/vanilla-avatar'
 import { NO_COSMETICS, type CosmeticSettings } from '@core/model/cosmetics'
 import { createPlaceholderSkin } from '@core/skin/placeholder-skin'
 import { normalizeSkin, type NormalizedSkin, type SkinModelType } from '@core/skin/skin'
@@ -66,7 +69,8 @@ export const vanillaHidden = computed<ReadonlySet<VanillaId>>(() => {
   return luaControlsVanilla.value ? new Set() : new Set(figura.avatar.hiddenVanilla)
 })
 
-export const avatarModel = computed(() =>
+/** Modell ohne Chibi-Umbau. */
+export const baseAvatarModel = computed(() =>
   buildAvatarModel({
     skin: loadedSkin.value.skin,
     modelType: effectiveModel.value,
@@ -75,6 +79,22 @@ export const avatarModel = computed(() =>
     vanillaHidden: vanillaHidden.value
   })
 )
+
+/** Chibi-Modus (pro Avatar gespeichert, siehe rig-state). */
+export const chibiSettings = signal<ChibiSettings>(DEFAULT_CHIBI)
+
+export const chibiResult = computed(() => applyChibi(baseAvatarModel.value, chibiSettings.value, SKIN_TEXTURE_ID))
+
+/** Das angezeigte Modell (ggf. als Chibi). */
+export const avatarModel = computed(() => chibiResult.value.model)
+
+/** Skin-Textur für den Chibi-Modus umrechnen (die Laufzeit setzt die Skin-Textur immer wieder neu). */
+export const chibiSkinTransform = computed<(image: RgbaImage) => RgbaImage>(() => {
+  const settings = chibiSettings.value
+  const plan = chibiSkinPlan(baseAvatarModel.value, settings, SKIN_TEXTURE_ID)
+  if (plan.length === 0) return (image) => image
+  return (image) => resampleSkin(image, 64, plan, settings.textureMode)
+})
 
 // ---------------------------------------------------------------------------
 // Hinweise/Fehlermeldungen („Toasts“)

@@ -87,6 +87,7 @@ function actionOptions(): { group: string; items: { id: string; label: string }[
       group: t('hotkeys.group.general'),
       items: [
         { id: 'output:window', label: actionLabel('output:window') },
+        { id: 'chibi:toggle', label: actionLabel('chibi:toggle') },
         { id: 'tracking:neutral', label: actionLabel('tracking:neutral') },
         ...profiles.value.map((p) => ({ id: `profile:${p.name}`, label: actionLabel(`profile:${p.name}`) }))
       ]

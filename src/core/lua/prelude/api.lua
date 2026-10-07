@@ -1175,6 +1175,12 @@ avatar = stub('AvatarAPI', 'avatar', {
   getRemainingSounds = function() return 0 end
 })
 
+-- Erweiterung der VTuber-App (nicht in Figura)
+vtuber = {
+  isChibi = function() return js.chibi() == true end,
+  isApp = function() return true end
+}
+
 json = stub('JsonAPI', 'json')
 data = stub('DataAPI', 'data')
 raycast = stub('RaycastAPI', 'raycast')

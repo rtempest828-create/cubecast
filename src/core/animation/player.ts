@@ -189,7 +189,14 @@ export class AnimationPlayer {
   }
 
   /** Addiert alle aktiven Animationen (gewichtet) zur Pose. */
-  apply(pose: PoseBuilder, clips: readonly AnimationClip[], settingsOf: (id: string) => AnimationSettings, lifeTime: number): void {
+  apply(
+    pose: PoseBuilder,
+    clips: readonly AnimationClip[],
+    settingsOf: (id: string) => AnimationSettings,
+    lifeTime: number,
+    /** Faktor für Verschiebungen pro Teil (Chibi-Modus). */
+    positionScale?: (partId: string) => readonly [number, number, number] | undefined
+  ): void {
     const overridden = new Set<string>()
     for (const clip of clips) {
       const state = this.states.get(clip.id)
@@ -220,11 +227,13 @@ export class AnimationPlayer {
             part.rotation[1] -= v[1] * weight
             part.rotation[2] -= v[2] * weight
             break
-          case 'position':
-            part.position[0] += v[0] * weight
-            part.position[1] += v[1] * weight
-            part.position[2] -= v[2] * weight
+          case 'position': {
+            const k = positionScale?.(track.partId) ?? [1, 1, 1]
+            part.position[0] += v[0] * weight * k[0]
+            part.position[1] += v[1] * weight * k[1]
+            part.position[2] -= v[2] * weight * k[2]
             break
+          }
           case 'scale':
             for (let i = 0; i < 3; i++) part.scale[i] = part.scale[i]! * (1 + (v[i]! - 1) * weight)
             break

@@ -1,3 +1,4 @@
+import { parseChibiSettings, type ChibiSettings } from '../chibi/chibi'
 import { parseCustomVariants, type StoredCustomVariants } from '../face/face-custom'
 import { isValidCellRect, type FaceLayout } from '../face/face-layout'
 import { walkParts, type AvatarModel, type PartNode } from '../model/avatar-model'
@@ -73,6 +74,8 @@ export interface AvatarRig {
   readonly animations?: Readonly<Record<string, AnimationSettings>>
   /** Lua-Skripte des Figura-Avatars ausführen (Standard: ja). */
   readonly luaEnabled?: boolean
+  /** Chibi-Modus (eine Einstellung pro Avatar). */
+  readonly chibi?: ChibiSettings
 }
 
 /** Zuordnungen von Zubehör-Teilen bleiben erhalten, auch wenn das Zubehör gerade aus ist. */
@@ -295,7 +298,8 @@ export function parseRig(value: unknown, model: AvatarModel): { rig: AvatarRig; 
       cosmetics: parseCosmetics(value['cosmetics']),
       ...(Array.isArray(value['vanillaHidden']) ? { vanillaHidden: parseVanillaHidden(value['vanillaHidden']) } : {}),
       ...(isRecord(value['animations']) ? { animations: parseAnimationSettings(value['animations']) } : {}),
-      ...(typeof value['luaEnabled'] === 'boolean' ? { luaEnabled: value['luaEnabled'] } : {})
+      ...(typeof value['luaEnabled'] === 'boolean' ? { luaEnabled: value['luaEnabled'] } : {}),
+      ...(isRecord(value['chibi']) ? { chibi: parseChibiSettings(value['chibi']) } : {})
     },
     warnings
   }

@@ -1230,3 +1230,11 @@ kbd {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* ---------- Chibi ---------- */
+.chibi-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}

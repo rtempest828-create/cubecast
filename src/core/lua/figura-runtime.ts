@@ -20,6 +20,8 @@ export interface FiguraLuaHost {
   animation(command: string, id: string, argument: unknown): unknown
   /** Speichert die `config`-Daten des Avatars (JSON). */
   saveConfig(json: string): void
+  /** Ist der Chibi-Modus an? (für `vtuber.isChibi()`) */
+  isChibi?(): boolean
 }
 
 export interface LuaLimits {
@@ -171,6 +173,7 @@ export class FiguraLuaRuntime {
         anim: (command: unknown, id: unknown, argument: unknown) => options.host.animation(String(command), String(id), argument) ?? undefined,
         configSave: (json: unknown) => options.host.saveConfig(String(json)),
         now: () => Date.now(),
+        chibi: () => options.host.isChibi?.() === true,
         instructions: () => sandbox.instructionsUsed
       })
       sandbox.set('__vt_setup', {

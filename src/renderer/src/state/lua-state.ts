@@ -7,7 +7,7 @@ import { logger } from '@core/log/logger'
 import type { Signals } from '@core/tracking/signals'
 import { t } from '@shared/i18n'
 import { luaAnimationCommand } from './animation-state'
-import { loadedFigura, loadedSkin, luaControlsVanilla, pushToast } from './app-state'
+import { chibiSettings, loadedFigura, loadedSkin, luaControlsVanilla, pushToast } from './app-state'
 import { avatarKey, rig, updateRig } from './rig-state'
 
 /**
@@ -136,7 +136,8 @@ async function startRuntime(token: number): Promise<void> {
       host: {
         log: appendLog,
         animation: luaAnimationCommand,
-        saveConfig
+        saveConfig,
+        isChibi: () => chibiSettings.peek().enabled
       },
       playerName: source.kind === 'player' ? source.name : 'Spieler',
       slim: loadedSkin.peek().skin.detectedModel === 'slim',

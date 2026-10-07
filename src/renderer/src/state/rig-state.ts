@@ -10,7 +10,8 @@ import { logger } from '@core/log/logger'
 import type { CosmeticSettings } from '@core/model/cosmetics'
 import type { VanillaId } from '@core/figura/vanilla-scan'
 import { createDefaultRig, parseCosmetics, parseRig, parseVanillaHidden, rerunAutoDetection, withDefaults, type AvatarRig, type FaceRigSettings } from '@core/roles/rig'
-import { avatarModel, cosmeticSettings, loadedFigura, loadedSkin, vanillaOverride } from './app-state'
+import { parseChibiSettings, type ChibiSettings } from '@core/chibi/chibi'
+import { avatarModel, chibiSettings, cosmeticSettings, loadedFigura, loadedSkin, vanillaOverride } from './app-state'
 
 /**
  * Rollen-Zuordnung und Gesichts-Overlay des aktuellen Avatars.
@@ -71,6 +72,7 @@ effect(() => {
     const record = typeof stored === 'object' && stored !== null ? (stored as Record<string, unknown>) : {}
     cosmeticSettings.value = parseCosmetics(record['cosmetics'])
     vanillaOverride.value = parseVanillaHidden(record['vanillaHidden'])
+    chibiSettings.value = parseChibiSettings(record['chibi'])
     const { rig: parsed, warnings } = parseRig(stored, avatarModel.peek())
     for (const warning of warnings) logger.warn('Rollen', warning)
     rigWarnings.value = warnings
@@ -111,7 +113,24 @@ export function updateFaceSettings(patch: Partial<FaceRigSettings>): void {
 }
 
 export function resetRig(): void {
-  updateRig({ ...createDefaultRig(avatarModel.peek()), cosmetics: rig.peek().cosmetics, vanillaHidden: rig.peek().vanillaHidden ?? null, animations: rig.peek().animations ?? {} })
+  updateRig({
+    ...createDefaultRig(avatarModel.peek()),
+    cosmetics: rig.peek().cosmetics,
+    vanillaHidden: rig.peek().vanillaHidden ?? null,
+    animations: rig.peek().animations ?? {},
+    chibi: chibiSettings.peek()
+  })
+}
+
+/** Chibi-Modus ändern (Modell wird neu gebaut; Teil-IDs und Rollen bleiben). */
+export function updateChibi(patch: Partial<ChibiSettings>): void {
+  const next = { ...chibiSettings.peek(), ...patch }
+  chibiSettings.value = next
+  updateRig({ ...rig.peek(), chibi: next })
+}
+
+export function toggleChibi(): void {
+  updateChibi({ enabled: !chibiSettings.peek().enabled })
 }
 
 /** Vanilla-Teile ein-/ausblenden (null = wie im Figura-Skript). */

@@ -17,6 +17,7 @@ import { loadAutoProfile } from './state/profile-state'
 import { TrackingPanel } from './panels/TrackingPanel'
 import { activeTab, type TabId } from './state/app-state'
 import { clearSelection, debugMode } from './state/debug-state'
+import { toggleChibi } from './state/rig-state'
 
 const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
   model: ModelPanel,
@@ -32,7 +33,10 @@ const PANELS: Readonly<Record<TabId, () => JSX.Element>> = {
 export function App(): JSX.Element {
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'F12') {
+      if (event.ctrlKey && !event.altKey && event.code === 'KeyK') {
+        event.preventDefault()
+        toggleChibi()
+      } else if (event.key === 'F12') {
         event.preventDefault()
         debugMode.value = !debugMode.peek()
       } else if (event.key === 'Escape' && debugMode.peek()) {
