@@ -14,7 +14,9 @@ Alles läuft lokal, ohne Konto und ohne Cloud.
 
 ## Installation
 
-**Als Programm:** `CubeCast-Setup-<Version>.exe` ausführen (Erstellung siehe „Installer bauen“).
+**Als Programm:** Unter [Releases](https://github.com/rtempest828-create/cubecast/releases) herunterladen:
+`CubeCast-Setup-<Version>.exe` (installiert mit Startmenü-Eintrag) oder `CubeCast-Portable-<Version>.exe`
+(ohne Installation, einfach doppelklicken).
 Windows warnt eventuell, weil das Programm nicht signiert ist („Weitere Informationen“ → „Trotzdem ausführen“).
 
 **Aus dem Quellcode:** Voraussetzungen Windows 10/11, [Node.js](https://nodejs.org/) 20 oder neuer.

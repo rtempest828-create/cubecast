@@ -52,16 +52,25 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
         }
-      ],
-      "artifactName": "CubeCast-Setup-${version}.${ext}"
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
       "shortcutName": "CubeCast",
-      "uninstallDisplayName": "CubeCast"
+      "uninstallDisplayName": "CubeCast",
+      "artifactName": "CubeCast-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "CubeCast-Portable-${version}.${ext}"
     }
   }
 }
